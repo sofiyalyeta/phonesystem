@@ -90,7 +90,17 @@ st.markdown('''<div class="custom-text-area">Insert Text Here</br> </div>
 
 
 st.subheader("Phone System File Upload")
-installer_file = st.file_uploader("Upload Phone System Data File", type=["xlsx", "xls"])
+phonesystem_file = st.file_uploader("Upload Phone System Data File", type=["xlsx", "xls"])
 
 
 
+if phonesystem_file:
+    with st.spinner("Processing data..."):
+
+        #Load data
+        total_calls = pd.read_excel(phonesystem_file)
+
+        #remove milliseconds after case work column
+        total_calls.drop(columns =['ACW_Time'], inplace = True)
+
+        st.dataframe(total_calls)
