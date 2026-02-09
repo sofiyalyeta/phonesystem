@@ -316,13 +316,14 @@ if phonesystem_file:
             total_calls = total_calls[total_calls['Business_Hours'] == 1].copy()
 
 
-        # Multi-select widget
-        selected_calls = st.multiselect(
-            "Select call types:",  # Label
-            options=teams,                     # Options list
-            default=["No Agent", "Inbound", "Outbound", "Voicemail", "Other"]     # default selection
-        )
+        # Multi-select widget types of calls
+        default_calls = [c for c in ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"] if c in teams]
 
+        selected_calls = st.multiselect(
+            "Select call types:",
+            options=teams,
+            default=default_calls
+        )
 
 
         st.dataframe(total_calls)
