@@ -172,6 +172,7 @@ if phonesystem_file:
         total_calls.sort_values("start_time", inplace=True)
 
         total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
+        total_calls['team_name'] = total_calls['team_name'].fillna('No Assigned Team')
 
         #filter spam
         excluded_mask = (total_calls["InQueue"] == 0) & (total_calls["PreQueue"] > 0)
