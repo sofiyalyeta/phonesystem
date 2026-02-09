@@ -315,13 +315,9 @@ if phonesystem_file:
             # Keep only calls within business hours
             total_calls = total_calls[total_calls['Business_Hours'] == 1].copy()
 
-
-        # Multi-select widget types of calls
-        default_calls = [c for c in ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"] if c in teams]
-
         selected_calls = st.multiselect(
             "Select call types:",
-            options=default_calls,
+            options= ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"],
         )
 
 
