@@ -181,7 +181,7 @@ if phonesystem_file:
         total_calls = total_calls.loc[~excluded_mask]
         st.text(f"{excluded_calls} calls have been classified as spam and removed from the analysis.")
 
-
+        total_calls['start_time'] = pd.to_datetime(total_calls['start_time'], errors='coerce')
 
         total_calls["Timeframe"] = pd.to_datetime(
             total_calls["start_date"],
