@@ -321,8 +321,7 @@ if phonesystem_file:
 
         selected_calls = st.multiselect(
             "Select call types:",
-            options=teams,
-            default=default_calls
+            options=default_calls,
         )
 
 
@@ -388,7 +387,7 @@ if phonesystem_file:
         for col in list_cols:
             display_df[col] = display_df[col].apply(lambda x: ", ".join(map(str, x)) if isinstance(x, list) else "")
 
-        st.dataframe(monthly_team_calls)
+        st.dataframe(display_df)
 
 
 
