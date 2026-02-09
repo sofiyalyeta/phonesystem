@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import numpy as np
 
 st.set_page_config(page_title="Phone System Data Analysis", layout="wide")
@@ -453,6 +454,39 @@ if phonesystem_file:
         st.dataframe(agg_df)
         
 
+
+        # Sort teams by total calls (ascending works best for horizontal bars)
+        agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
+
+        # Melt for Plotly
+        agg_df_melt = agg_df_sorted.melt(
+            id_vars="team_name",
+            value_vars=["Inbound", "Outbound", 'Voicemail', "No Agent", "Total Calls"],
+            var_name="CallType",
+            value_name="Count"
+        )
+
+        # Build chart
+        fig = px.bar(
+            agg_df_melt,
+            x="Count",
+            y="team_name",
+            color="CallType",
+            barmode="group",
+            orientation="h",
+            title="Call Volume by Team"
+        )
+
+        # Auto-scale height so labels stay readable
+        fig.update_layout(
+            height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
+            yaxis_title="Team",
+            xaxis_title="Call Count",
+            legend_title="Call Type"
+        )
+
+        # Render in Streamlit
+        st.plotly_chart(fig, use_container_width=True)
 
 
 
