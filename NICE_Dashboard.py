@@ -193,6 +193,12 @@ if phonesystem_file:
         total_calls['Agent_Work_Seconds'] = total_calls['ACW_Seconds'] + total_calls['Agent_Time']
         total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
 
+        total_calls["month"] = total_calls["start_date"].dt.to_period("M")
+        total_calls["timeframe_period"] = pd.to_datetime(
+            total_calls["Timeframe"], format="%b-%Y"
+        ).dt.to_period("M")
+
+
         # normalize skill name and create categories for the type of call
         skill_clean = (
             total_calls["skill_name"]
@@ -332,11 +338,6 @@ if phonesystem_file:
 
 
         #filter based on timeframe
-        total_calls["month"] = total_calls["start_date"].dt.to_period("M")
-        total_calls["timeframe_period"] = pd.to_datetime(
-            total_calls["Timeframe"], format="%b-%Y"
-        ).dt.to_period("M")
-
 
         timeframe_options = (
             total_calls[["Timeframe", "timeframe_period"]]
