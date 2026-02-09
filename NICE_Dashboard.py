@@ -357,7 +357,7 @@ if phonesystem_file:
 
         default_end_idx = len(periods) - 1
 
-        # ---- selectors ----
+        # ---- start selector ----
         start_idx = st.selectbox(
             "Start Month:",
             options=range(len(labels)),
@@ -365,10 +365,13 @@ if phonesystem_file:
             format_func=lambda i: labels[i],
         )
 
+        # ---- clamp end default to >= start ----
+        end_default_idx = max(default_end_idx, start_idx)
+
         end_idx = st.selectbox(
             "End Month:",
             options=range(start_idx, len(labels)),
-            index=default_end_idx - start_idx,
+            index=end_default_idx - start_idx,
             format_func=lambda i: labels[i],
         )
 
@@ -380,7 +383,7 @@ if phonesystem_file:
         filtered_df = filtered_calls[
             (filtered_calls["month"] >= start_period) &
             (filtered_calls["month"] <= end_period)
-]
+        ]
 
         category_counts = (
             filtered_calls
