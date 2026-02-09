@@ -329,12 +329,14 @@ if phonesystem_file:
             (total_calls['call_category'].isin(selected_calls))
         ]
 
+
+
         #filter based on timeframe
         total_calls["month"] = total_calls["start_date"].dt.to_period("M")
-        # Create a mapping from Timeframe string → Period
         total_calls["timeframe_period"] = pd.to_datetime(
             total_calls["Timeframe"], format="%b-%Y"
-        ).to_period("M")
+        ).dt.to_period("M")
+
 
         timeframe_options = (
             total_calls[["Timeframe", "timeframe_period"]]
