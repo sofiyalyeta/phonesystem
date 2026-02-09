@@ -381,6 +381,12 @@ if phonesystem_file:
             how="left"
         )
 
+        display_df = monthly_team_calls.copy()
+
+        list_cols = ['agent_list', 'skill_list', 'campaign_list', 'Customer_Contacts']
+
+        for col in list_cols:
+            display_df[col] = display_df[col].apply(lambda x: ", ".join(map(str, x)) if isinstance(x, list) else "")
 
         st.dataframe(monthly_team_calls)
 
