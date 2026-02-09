@@ -338,7 +338,6 @@ if phonesystem_file:
 
 
         #filter based on timeframe
-
         timeframe_options = (
             total_calls[["Timeframe", "timeframe_period"]]
             .drop_duplicates()
@@ -348,26 +347,40 @@ if phonesystem_file:
         labels = timeframe_options["Timeframe"].tolist()
         periods = timeframe_options["timeframe_period"].tolist()
 
+        # ---- defaults ----
+        default_start_period = pd.Period("2024-03", freq="M")
+
+        if default_start_period in periods:
+            default_start_idx = periods.index(default_start_period)
+        else:
+            default_start_idx = 0
+
+        default_end_idx = len(periods) - 1
+
+        # ---- selectors ----
         start_idx = st.selectbox(
             "Start Month:",
             options=range(len(labels)),
+            index=default_start_idx,
             format_func=lambda i: labels[i],
         )
 
         end_idx = st.selectbox(
             "End Month:",
             options=range(start_idx, len(labels)),
+            index=default_end_idx - start_idx,
             format_func=lambda i: labels[i],
         )
 
+        # ---- resolve periods ----
         start_period = periods[start_idx]
         end_period = periods[end_idx]
 
+        # ---- filter (inclusive) ----
         filtered_df = filtered_calls[
             (filtered_calls["month"] >= start_period) &
             (filtered_calls["month"] <= end_period)
-        ]
-
+]
 
         category_counts = (
             filtered_calls
