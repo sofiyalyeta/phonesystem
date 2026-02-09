@@ -260,9 +260,6 @@ if phonesystem_file:
             default=["Customer Support", "Deployment", "Sales", "Billing and Collections", "Technical Team", "Other"]     # default selection
         )
 
-        # Display the selection
-        st.write("You selected:", selected_teams)
-
 
         # Define static business hours for other teams
         business_hours = {
@@ -318,6 +315,7 @@ if phonesystem_file:
         selected_calls = st.multiselect(
             "Select call types:",
             options= ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"],
+            default = ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"]
         )
 
 
