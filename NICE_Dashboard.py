@@ -84,6 +84,72 @@ st.markdown(
 #set the application title to 'Phone System Data Analysis'
 st.markdown('<div class="custom-text-area title">{}</div>'.format('Phone System Data Analysis'), unsafe_allow_html=True)
 
+import streamlit as st
+
+st.header("Data Legend")
+
+# Contact & Identification
+st.subheader("Contact & Identification")
+st.text("""
+contact_id: Unique identifier for the individual interaction
+master_contact_id: Identifier linking related interactions (transfers, callbacks)
+media_name: Interaction channel (Voice, Chat, Email, SMS)
+contact_name: Friendly name or label for the interaction
+ANI: Caller phone number (Automatic Number Identification)
+DNIS: Dialed phone number (Dialed Number Identification Service)
+""")
+
+# Skill & Routing
+st.subheader("Skill & Routing")
+st.text("""
+skill_no: Numeric ID of the routing skill
+skill_name: Name of the routing skill
+campaign_no: Campaign identifier
+campaign_name: Campaign name
+""")
+
+# Agent & Team
+st.subheader("Agent & Team")
+st.text("""
+agent_no: Agent system ID
+agent_name: Agent display name
+team_no: Team identifier
+team_name: Team name
+""")
+
+# Service Level
+st.subheader("Service Level")
+st.text("""
+SLA: Service level indicator (met or not met)
+""")
+
+# Date & Time
+st.subheader("Date & Time")
+st.text("""
+start_date: Date the interaction started
+start_time: Time the interaction started
+""")
+
+# Queue & Handling Time
+st.subheader("Queue & Handling Time")
+st.text("""
+PreQueue: Time spent in IVR or routing before entering queue
+InQueue: Time spent waiting in queue
+Agent_Time: Time agent actively handled the interaction
+PostQueue: Time after leaving queue before wrap-up
+Total_Time: Total duration of the interaction
+Abandon_Time: Time elapsed before customer abandoned
+abandon: Abandon flag (1 = abandoned, 0 = handled)
+""")
+
+# After Call Work
+st.subheader("After Call Work (ACW)")
+st.text("""
+ACW_Seconds: After Call Work duration in seconds
+ACW_Time: After Call Work duration formatted as time
+""")
+
+
 
 st.markdown('''<div class="custom-text-area">Insert Text Here</br> </div>
 ''', unsafe_allow_html=True)
@@ -95,7 +161,7 @@ phonesystem_file = st.file_uploader("Upload Phone System Data File", type=["xlsx
 
 
 if phonesystem_file:
-    with st.spinner("Processing data..."):
+    with st.spinner("Processing data... Please be patient."):
 
         #Load data
         total_calls = pd.read_excel(phonesystem_file)
