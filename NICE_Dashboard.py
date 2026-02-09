@@ -105,7 +105,7 @@ if phonesystem_file:
         total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
         total_calls = total_calls.sort_values("start_time", inplace=True)
 
-        total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
+        #total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
 
         #filter spam
         excluded_mask = (total_calls["InQueue"] == 0) & (total_calls["PreQueue"] > 0)
@@ -114,4 +114,5 @@ if phonesystem_file:
 
 
         st.dataframe(total_calls)
+
 
