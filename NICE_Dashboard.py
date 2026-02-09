@@ -432,7 +432,7 @@ if phonesystem_file:
                 .groupby('team_name', as_index=False)[call_cols]
                 .sum()
         )
-        agg_df['total_calls'] = agg_df[call_cols].sum(axis=1)
+        agg_df['Total Calls'] = agg_df[call_cols].sum(axis=1)
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
         st.dataframe(agg_df)
         
