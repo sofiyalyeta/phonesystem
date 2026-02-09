@@ -442,51 +442,41 @@ if phonesystem_file:
         st.dataframe(display_df)
 
 
-        #team calls by type, sorted high to low
+        # show call volume by type for each team
+        # Define expected call columns
         call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
+
+        # Keep only columns that actually exist in the DataFrame
+        existing_call_cols = [col for col in call_cols if col in monthly_team_calls.columns]
+
+        # Aggregate by team
         agg_df = (
             monthly_team_calls
-                .groupby('team_name', as_index=False)[call_cols]
+                .groupby('team_name', as_index=False)[existing_call_cols]
                 .sum()
         )
-        agg_df['Total Calls'] = agg_df[call_cols].sum(axis=1)
+
+        # Compute total calls across available columns
+        agg_df['Total Calls'] = agg_df[existing_call_cols].sum(axis=1)
+
+        # Sort by total calls (descending for table)
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
         st.dataframe(agg_df)
-        
 
-
-        # Sort teams by total calls (ascending works best for horizontal bars)
+        # Sort ascending for horizontal bar chart
         agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
 
-        # Melt for Plotly
+        # Melt for Plotly using only available columns + Total Calls
         agg_df_melt = agg_df_sorted.melt(
             id_vars="team_name",
-            value_vars=["Inbound", "Outbound", 'Voicemail', "No Agent", "Total Calls"],
+            value_vars=existing_call_cols + ["Total Calls"],
             var_name="CallType",
             value_name="Count"
         )
 
-        # Build chart
-        fig = px.bar(
-            agg_df_melt,
-            x="Count",
-            y="team_name",
-            color="CallType",
-            barmode="group",
-            orientation="h",
-            title="Call Volume by Team"
-        )
+        # Build Plotly chart
+        fig = px.ba
 
-        # Auto-scale height so labels stay readable
-        fig.update_layout(
-            height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
-            yaxis_title="Team",
-            xaxis_title="Call Count",
-            legend_title="Call Type"
-        )
-
-        # Render in Streamlit
-        st.plotly_chart(fig, use_container_width=True)
 
 
 
@@ -639,3 +629,24 @@ if phonesystem_file:
 
 
 
+
+
+
+
+# call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
+# time_cols = [
+#             'agent_time', 
+#              'acw_time', 
+#              'abandon_time',
+#              'total_calls_time'
+#              ]
+
+# # Sum total hours for each row
+# monthly_team_calls['total_calls_time'] = monthly_team_calls[time_cols].sum(axis=1)
+
+# # Aggregate total calls and total hours per team
+# agg = monthly_team_calls.groupby('team_name', as_index=False).agg(
+#     total_calls_time=('total_calls_time', 'sum'),
+#     **{col: ('{}'.format(col), 'sum') for col in call_cols}
+# )
+# agg
