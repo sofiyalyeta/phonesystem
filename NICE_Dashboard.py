@@ -308,8 +308,12 @@ if phonesystem_file:
         # Apply the function
         total_calls['Business_Hours'] = total_calls.apply(is_business_hours, axis=1)
 
-        if st.button("Exclude calls outside business hours?"):
-            # Keep only calls within business hours
+        exclude_outside_hours = st.toggle(
+            "Exclude calls outside business hours?",
+            value=False  # default = No
+        )
+
+        if exclude_outside_hours:
             total_calls = total_calls[total_calls['Business_Hours'] == 1].copy()
 
         selected_calls = st.multiselect(
@@ -319,13 +323,46 @@ if phonesystem_file:
         )
 
 
-        st.dataframe(total_calls)
-
-
         # Filter based on selection and business hours
         filtered_calls = total_calls[
             (total_calls['department'].isin(selected_teams)) &
             (total_calls['call_category'].isin(selected_calls))
+        ]
+
+        #filter based on timeframe
+        total_calls["month"] = total_calls["start_date"].dt.to_period("M")
+        # Create a mapping from Timeframe string → Period
+        total_calls["timeframe_period"] = pd.to_datetime(
+            total_calls["Timeframe"], format="%b-%Y"
+        ).to_period("M")
+
+        timeframe_options = (
+            total_calls[["Timeframe", "timeframe_period"]]
+            .drop_duplicates()
+            .sort_values("timeframe_period")
+        )
+
+        labels = timeframe_options["Timeframe"].tolist()
+        periods = timeframe_options["timeframe_period"].tolist()
+
+        start_idx = st.selectbox(
+            "Start Month:",
+            options=range(len(labels)),
+            format_func=lambda i: labels[i],
+        )
+
+        end_idx = st.selectbox(
+            "End Month:",
+            options=range(start_idx, len(labels)),
+            format_func=lambda i: labels[i],
+        )
+
+        start_period = periods[start_idx]
+        end_period = periods[end_idx]
+
+        filtered_df = filtered_calls[
+            (filtered_calls["month"] >= start_period) &
+            (filtered_calls["month"] <= end_period)
         ]
 
 
@@ -381,7 +418,22 @@ if phonesystem_file:
         for col in list_cols:
             display_df[col] = display_df[col].apply(lambda x: ", ".join(map(str, x)) if isinstance(x, list) else "")
 
+
         st.dataframe(display_df)
+
+
+        #team calls by type, sorted high to low
+        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
+        agg_df = (
+            monthly_team_calls
+                .groupby('team_name', as_index=False)[call_cols]
+                .sum()
+        )
+        agg_df['total_calls'] = agg_df[call_cols].sum(axis=1)
+        agg_df = agg_df.sort_values('Total Calls', ascending=False)
+        st.dataframe(agg_df)
+        
+
 
 
 
