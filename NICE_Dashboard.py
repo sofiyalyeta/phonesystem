@@ -560,18 +560,46 @@ if phonesystem_file:
                 .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
-                    agent_total_time=('Agent_Work_Time', 'sum')  # <- use Agent_Work_Time
+                    agent_total_time_mins=('Agent_Work_Time', 'sum') / 60  # <- use Agent_Work_Time
                 )
         )
 
         time_pivot = time_by_call_type.pivot(
             index='team_name',
             columns='call_category',
-            values='agent_total_time'   # <- matches the aggregated column name
+            values='agent_total_time_mins'   # <- matches the aggregated column name
         ).fillna(0)
 
         st.dataframe(time_pivot)
+        
+        if not time_pivot.empty:
+            # Reset index for plotting
+            plot_time_df = time_pivot.reset_index().melt(
+                id_vars='team_name',
+                var_name='Call Type',
+                value_name='Agent Time (mins)'
+            )
 
+            # Plot stacked bar chart
+            fig_time = px.bar(
+                plot_time_df,
+                x='team_name',
+                y='Agent Time (mins)',
+                color='Call Type',
+                title='Agent Work Time by Call Type and Team',
+                text_auto=True
+            )
+
+            fig_time.update_layout(
+                barmode='stack',
+                xaxis_title='Team',
+                yaxis_title='Total Agent Time (mins)',
+                legend_title='Call Type'
+            )
+
+            fig_time.update_xaxes(tickangle=-45)
+            
+            st.plotly_chart(fig_time, use_container_width=True)
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
 
