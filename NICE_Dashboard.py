@@ -550,7 +550,7 @@ if phonesystem_file:
             values='total_customer_call_time'
         ).fillna(0)
 
-
+        st.dataframe(time_pivot)
 
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
