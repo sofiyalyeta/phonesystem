@@ -524,7 +524,7 @@ if phonesystem_file:
         # -------------------------------
         time_by_call_type = (
             filtered_calls
-                .groupby(['team_name', 'call_type'], as_index=False)
+                .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
                     total_customer_call_time=('customer_call_time', 'sum')
