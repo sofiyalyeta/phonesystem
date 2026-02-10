@@ -191,7 +191,11 @@ if phonesystem_file:
         total_calls["Timeframe"] = total_calls["Timeframe"].dt.strftime("%b-%Y")
         #total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
         #total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
-        total_calls['Agent_Work_Time'] = total_calls['ACW_Seconds'] + total_calls['Agent_Time']
+        total_calls['Agent_Work_Time'] = pd.to_numeric(
+        total_calls['ACW_Seconds'].fillna(0) + total_calls['Agent_Time'].fillna(0),
+        errors='coerce'
+        )
+
         #total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
 
         total_calls["month"] = total_calls["start_date"].dt.to_period("M")
