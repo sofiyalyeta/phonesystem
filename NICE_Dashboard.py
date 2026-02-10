@@ -534,8 +534,8 @@ if phonesystem_file:
         # Optional pivot for reporting
         time_pivot = time_by_call_type.pivot(
             index='team_name',
-            columns='call_type',
-            values='total_customer_call_time'
+            columns='call_column',
+            values='agent_total_time'
         ).fillna(0)
 
         st.dataframe(time_pivot)
