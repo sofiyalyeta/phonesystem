@@ -488,7 +488,17 @@ if phonesystem_file:
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
 
         st.text('Call Types by Team')
-        st.dataframe(agg_df)
+        #st.dataframe(agg_df)
+
+        # Define a consistent color mapping for call types
+        call_colors = {
+            "Inbound": "#0B3D91",
+            "Outbound": "#89CFF0",
+            "Voicemail": "#FFD700",
+            "After Hours": "#AB63FA",
+            "No Agent":  "#EF553B",
+            "Other": "#808080",
+        }
 
 
         # -------------------------------
@@ -510,29 +520,29 @@ if phonesystem_file:
             value_name="Calls"
         )
 
-        # Plotly stacked bar
+        # Calls by team
         fig = px.bar(
             plot_df,
             x="team_name",
             y="Calls",
             color="Call Type",
             title="Call Types by Team",
-            text_auto=True
+            text_auto=True,
+            color_discrete_map=call_colors
         )
-
         fig.update_layout(
             barmode="stack",
             xaxis_title="Team",
             yaxis_title="Number of Calls",
-            legend_title="Call Type"
+            legend_title="Call Type",
+            height=max(600, 40 * agg_df["team_name"].nunique())
         )
-
-        st.plotly_chart(fig, use_container_width=True)
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
             categoryorder="array",
             categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
         )
+        st.plotly_chart(fig, use_container_width=True)
 
 
 
@@ -577,7 +587,7 @@ if phonesystem_file:
             values='agent_total_time_mins'   # <- matches the aggregated column name
         ).fillna(0)
 
-        st.dataframe(time_pivot)
+        #st.dataframe(time_pivot)
         
         if not time_pivot.empty:
             # Reset index for plotting
@@ -587,29 +597,29 @@ if phonesystem_file:
                 value_name='Agent Time (mins)'
             )
 
-            # Plot stacked bar chart
-            fig_time = px.bar(
-                plot_time_df,
-                x='team_name',
-                y='Agent Time (mins)',
-                color='Call Type',
-                title='Agent Work Time by Call Type and Team',
-                text_auto=True
-            )
-
-            fig_time.update_layout(
-                barmode='stack',
-                xaxis_title='Team',
-                yaxis_title='Total Agent Time (mins)',
-                legend_title='Call Type'
-            )
-
-            fig_time.update_xaxes(tickangle=-45)
-            fig_time.update_xaxes(
-                categoryorder="array",
-                categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
-            )
-            st.plotly_chart(fig_time, use_container_width=True)
+        # Agent time by call type
+        fig_time = px.bar(
+            plot_time_df,
+            x='team_name',
+            y='Agent Time (mins)',
+            color='Call Type',
+            title='Agent Work Time by Call Type and Team',
+            text_auto=True,
+            color_discrete_map=call_colors
+        )
+        fig_time.update_layout(
+            barmode='stack',
+            xaxis_title='Team',
+            yaxis_title='Total Agent Time (mins)',
+            legend_title='Call Type',
+            height=max(600, 40 * agg_df["team_name"].nunique())
+        )
+        fig_time.update_xaxes(tickangle=-45)
+        fig_time.update_xaxes(
+            categoryorder="array",
+            categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
+        )
+        st.plotly_chart(fig_time, use_container_width=True)
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
 
