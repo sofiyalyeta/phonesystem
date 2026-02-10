@@ -170,7 +170,7 @@ if phonesystem_file:
 
         #remove milliseconds after case work column
         total_calls.drop(columns =['ACW_Time'], inplace = True)
-        total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
+        #total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
         total_calls.sort_values("start_time", inplace=True)
 
         total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
@@ -189,10 +189,10 @@ if phonesystem_file:
             errors="coerce"
         )
         total_calls["Timeframe"] = total_calls["Timeframe"].dt.strftime("%b-%Y")
-        total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
-        total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
-        total_calls['Agent_Work_Seconds'] = total_calls['ACW_Seconds'] + total_calls['Agent_Time']
-        total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
+        #total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
+        #total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
+        total_calls['Agent_Work_Time'] = total_calls['ACW_Seconds'] + total_calls['Agent_Time']
+        #total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
 
         total_calls["month"] = total_calls["start_date"].dt.to_period("M")
         total_calls["timeframe_period"] = pd.to_datetime(
@@ -208,13 +208,13 @@ if phonesystem_file:
                 .str.replace(" ", "", regex=False)
         )
         total_calls["call_category"] = np.select(
-            [
+            [   skill_clean.str.contains("afterhours", na=False),
                 skill_clean.str.contains("noagent", na=False),
                 skill_clean.str.contains("ib", na=False),
                 skill_clean.str.contains("ob", na=False),
                 skill_clean.str.contains("vm", na=False),
             ],
-            [
+            [   "After Hours",
                 "No Agent",
                 "Inbound",
                 "Outbound",
@@ -325,8 +325,8 @@ if phonesystem_file:
 
         selected_calls = st.multiselect(
             "Select call types:",
-            options= ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"],
-            default = ["No Agent", "Inbound", "Outbound", "Voicemail", "Other"]
+            options= ["After Hours","No Agent", "Inbound", "Outbound", "Voicemail", "Other"],
+            default = ["After Hours","No Agent", "Inbound", "Outbound", "Voicemail", "Other"]
         )
 
 
@@ -406,6 +406,7 @@ if phonesystem_file:
                     agent_time=('Agent_Time', 'sum'),
                     acw_time=('ACW_Seconds', 'sum'),
                     abandon_time=('Abandon_Time', 'sum'),
+                    abandon_time=('Agent_Work_Time', 'sum'),
                     total_calls_time=('Total_Time', 'sum'),
                     unique_agents_count=('agent_name', 'nunique'),
                     unique_skills_count=('skill_name', 'nunique'),
@@ -443,7 +444,7 @@ if phonesystem_file:
 
 
         # Define expected call columns
-        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
+        call_cols = ['Inbound', 'Outbound', 'Voicemail','After Hours', 'No Agent', 'Other']
 
         # Keep only columns that actually exist in the DataFrame
         existing_call_cols = [col for col in call_cols if col in monthly_team_calls.columns]
@@ -460,6 +461,7 @@ if phonesystem_file:
 
         # Sort by total calls (descending for table)
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
+        st.text('Call Types by Team')
         st.dataframe(agg_df)
 
         # Sort ascending for horizontal bar chart
@@ -495,6 +497,8 @@ if phonesystem_file:
         # Render in Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
+
+#call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
 
 
 
