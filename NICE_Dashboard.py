@@ -535,13 +535,26 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=max(600, 40 * agg_df["team_name"].nunique())
+            height=max(400, 40 * agg_df["team_name"].nunique())
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
             categoryorder="array",
             categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
         )
+
+
+        fig.update_traces(
+            texttemplate="%{text}" if plot_df["Calls"].min() > 10 else "",
+            textposition="inside"
+        )
+
+        fig.update_traces(
+            hovertemplate="%{x}<br>%{color}: %{y} calls"
+        )
+
+
+
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -612,13 +625,23 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=max(600, 40 * agg_df["team_name"].nunique())
+            height=max(400, 40 * agg_df["team_name"].nunique())
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
             categoryorder="array",
             categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
         )
+
+        fig_time.update_traces(
+            texttemplate="%{text}" if plot_time_df["Agent Time (mins)"].min() > 10 else "",
+            textposition="inside"
+        )
+
+        fig_time.update_traces(
+            hovertemplate="%{x}<br>%{color}: %{y} agent work time"
+        )
+
         st.plotly_chart(fig_time, use_container_width=True)
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
