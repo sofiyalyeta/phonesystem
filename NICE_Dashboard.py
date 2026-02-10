@@ -348,12 +348,13 @@ if phonesystem_file:
             .sort_values("timeframe_period")
         )
 
-        if timeframe_options.empty:
-            st.warning("No calls found for the selected teams, call types, or business hours.")
-        else:
-            labels = timeframe_options["Timeframe"].tolist()
-            periods = timeframe_options["timeframe_period"].tolist()
+        labels = timeframe_options["Timeframe"].tolist()
+        periods = timeframe_options["timeframe_period"].tolist()
 
+        if not labels:
+            st.warning("No calls found for the selected teams, call types, or business hours.")
+            filtered_df = pd.DataFrame()  # empty placeholder
+        else:
             # ---- defaults ----
             default_start_period = pd.Period("2024-03", freq="M")
             default_start_idx = periods.index(default_start_period) if default_start_period in periods else 0
@@ -379,8 +380,8 @@ if phonesystem_file:
             # Filter DataFrame
             start_period = periods[start_idx]
             end_period = periods[end_idx]
-            filtered_df = filtered_calls[
-                (filtered_calls["month"] >= start_period) & (filtered_calls["month"] <= end_period)
+            filtered_df = total_calls[
+                (total_calls["month"] >= start_period) & (total_calls["month"] <= end_period)
             ]
 
         category_counts = (
