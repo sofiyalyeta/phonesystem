@@ -285,30 +285,41 @@ if phonesystem_file:
         def is_business_hours(row):
             dep = row['department']
             call_time = row['start_time']
-            
-            # Team A special rules
+
+            if pd.isna(call_time):
+                return 0
+
+            # Default hours for most teams
+            default_hours = (9, 0, 17, 0)  # 9:00-17:00
+
             if dep == "Deployment":
                 cutoff_date = pd.Timestamp("2025-05-01")
                 if call_time < cutoff_date:
-                    # Before May 2025
-                    if call_time.weekday() <= 4:  # Monday-Friday
+                    if call_time.weekday() <= 4:  # Mon-Fri
                         start_h, start_m, end_h, end_m = 7, 0, 19, 0
-                    elif call_time.weekday() == 5:  # Saturday
+                    elif call_time.weekday() == 5:  # Sat
                         start_h, start_m, end_h, end_m = 8, 0, 16, 0
                     else:  # Sunday
                         return 0
                 else:
-                    # May 2025 onward, no Saturday coverage
-                    if call_time.weekday() <= 4:  # Monday-Friday
+                    if call_time.weekday() <= 4:
                         start_h, start_m, end_h, end_m = 7, 0, 19, 0
                     else:
                         return 0
-            elif dep in business_hours:
-                if call_time.weekday() > 4:  # No weekend coverage for other teams
-                    return 0
-                start_h, start_m, end_h, end_m = business_hours[dep]
             else:
-                return 0  # Default: unknown department is outside business hours
+                # Use business_hours dict if available, else default
+                if dep in business_hours:
+                    start_h, start_m, end_h, end_m = business_hours[dep]
+                else:
+                    start_h, start_m, end_h, end_m = default_hours
+
+            # Construct start and end datetime for that day
+            start_dt = call_time.replace(hour=start_h, minute=start_m, second=0, microsecond=0)
+            end_dt = call_time.replace(hour=end_h, minute=end_m, second=0, microsecond=0)
+
+            # Return 1 if inside business hours, else 0
+            return int(start_dt <= call_time <= end_dt)
+
 
             # Construct start and end time for the call day
             start_time = call_time.replace(hour=start_h, minute=start_m, second=0, microsecond=0)
@@ -529,7 +540,7 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=max(200, 40 * agg_df["team_name"].nunique())
+            height=max(150, 40 * agg_df["team_name"].nunique())
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
@@ -594,7 +605,7 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=max(200, 40 * agg_df["team_name"].nunique())
+            height=max(150, 40 * agg_df["team_name"].nunique())
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
