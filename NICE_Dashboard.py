@@ -403,18 +403,6 @@ if phonesystem_file:
 
 
         # -------------------------------
-        # 2. ENSURE SINGLE CALL TYPE
-        # -------------------------------
-        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
-
-        # assumes exactly one of these == 1 per row
-        filtered_calls['call_type'] = (
-            filtered_calls[call_cols]
-                .idxmax(axis=1)
-        )
-
-
-        # -------------------------------
         # 3. MAIN MONTHLY AGGREGATION
         # -------------------------------
         monthly_team_calls = (
@@ -453,7 +441,7 @@ if phonesystem_file:
         # -------------------------------
         call_type_counts = (
             filtered_calls
-                .groupby(['team_name', 'Timeframe', 'call_type'])
+                .groupby(['team_name', 'Timeframe', 'call_category'])
                 .size()
                 .unstack(fill_value=0)
                 .reset_index()
@@ -479,7 +467,7 @@ if phonesystem_file:
 
         st.dataframe(display_df)
 
-
+        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
         # -------------------------------
         # 6. CALL TYPES BY TEAM (COUNTS)
         # -------------------------------
