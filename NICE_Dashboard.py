@@ -553,22 +553,21 @@ if phonesystem_file:
 
 
         # -------------------------------
-        # 8. TIME BY CALL TYPE (THE FIX)
+        # 8. TIME BY CALL TYPE (Agent Time)
         # -------------------------------
         time_by_call_type = (
             filtered_calls
                 .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
-                    total_customer_call_time=('agent_total_time', 'sum')
+                    agent_total_time=('Agent_Work_Time', 'sum')  # <- use Agent_Work_Time
                 )
         )
 
-        # Optional pivot for reporting
         time_pivot = time_by_call_type.pivot(
             index='team_name',
-            columns='call_column',
-            values='agent_total_time'
+            columns='call_category',
+            values='agent_total_time'   # <- matches the aggregated column name
         ).fillna(0)
 
         st.dataframe(time_pivot)
