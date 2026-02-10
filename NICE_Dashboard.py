@@ -605,7 +605,10 @@ if phonesystem_file:
             )
 
             fig_time.update_xaxes(tickangle=-45)
-            
+            fig_time.update_xaxes(
+                categoryorder="array",
+                categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
+            )
             st.plotly_chart(fig_time, use_container_width=True)
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
