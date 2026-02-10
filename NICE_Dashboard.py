@@ -492,31 +492,64 @@ if phonesystem_file:
         # -------------------------------
         agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
 
-        agg_df_melt = agg_df_sorted.melt(
+        # agg_df_melt = agg_df_sorted.melt(
+        #     id_vars="team_name",
+        #     value_vars=existing_call_cols + ["Total Calls"],
+        #     var_name="CallType",
+        #     value_name="Count"
+        # )
+        # Long format for stacking
+        plot_df = agg_df.melt(
             id_vars="team_name",
-            value_vars=existing_call_cols + ["Total Calls"],
-            var_name="CallType",
-            value_name="Count"
+            value_vars=existing_call_cols,
+            var_name="Call Type",
+            value_name="Calls"
         )
 
+        # Plotly stacked bar
         fig = px.bar(
-            agg_df_melt,
-            x="Count",
-            y="team_name",
-            color="CallType",
-            barmode="group",
-            orientation="h",
-            title="Call Volume by Team"
+            plot_df,
+            x="team_name",
+            y="Calls",
+            color="Call Type",
+            title="Call Types by Team",
+            text_auto=True
         )
 
         fig.update_layout(
-            height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
-            yaxis_title="Team",
-            xaxis_title="Call Count",
+            barmode="stack",
+            xaxis_title="Team",
+            yaxis_title="Number of Calls",
             legend_title="Call Type"
         )
 
         st.plotly_chart(fig, use_container_width=True)
+        fig.update_xaxes(tickangle=-45)
+        fig.update_xaxes(
+            categoryorder="array",
+            categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
+        )
+
+
+
+        # fig = px.bar(
+        #     agg_df_melt,
+        #     x="Count",
+        #     y="team_name",
+        #     color="CallType",
+        #     barmode="group",
+        #     orientation="h",
+        #     title="Call Volume by Team"
+        # )
+
+        # fig.update_layout(
+        #     height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
+        #     yaxis_title="Team",
+        #     xaxis_title="Call Count",
+        #     legend_title="Call Type"
+        # )
+
+        # st.plotly_chart(fig, use_container_width=True)
 
 
         # -------------------------------
@@ -527,7 +560,7 @@ if phonesystem_file:
                 .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
-                    total_customer_call_time=('customer_call_time', 'sum')
+                    total_customer_call_time=('agent_total_time', 'sum')
                 )
         )
 
