@@ -318,6 +318,7 @@ if phonesystem_file:
 
         # Apply the function
         total_calls['Business_Hours'] = total_calls.apply(is_business_hours, axis=1)
+        st.dataframe(total_calls)
 
         exclude_outside_hours = st.toggle(
             "Exclude calls outside business hours?",
@@ -341,54 +342,46 @@ if phonesystem_file:
         ]
 
 
-
-        #filter based on timeframe
         timeframe_options = (
             total_calls[["Timeframe", "timeframe_period"]]
             .drop_duplicates()
             .sort_values("timeframe_period")
         )
 
-        labels = timeframe_options["Timeframe"].tolist()
-        periods = timeframe_options["timeframe_period"].tolist()
-
-        # ---- defaults ----
-        default_start_period = pd.Period("2024-03", freq="M")
-
-        if default_start_period in periods:
-            default_start_idx = periods.index(default_start_period)
+        if timeframe_options.empty:
+            st.warning("No calls found for the selected teams, call types, or business hours.")
         else:
-            default_start_idx = 0
+            labels = timeframe_options["Timeframe"].tolist()
+            periods = timeframe_options["timeframe_period"].tolist()
 
-        default_end_idx = len(periods) - 1
+            # ---- defaults ----
+            default_start_period = pd.Period("2024-03", freq="M")
+            default_start_idx = periods.index(default_start_period) if default_start_period in periods else 0
+            default_end_idx = len(periods) - 1
+            end_default_idx = max(default_end_idx, default_start_idx)
 
-        # ---- start selector ----
-        start_idx = st.selectbox(
-            "Start Month:",
-            options=range(len(labels)),
-            index=default_start_idx,
-            format_func=lambda i: labels[i],
-        )
+            # Start Month
+            start_idx = st.selectbox(
+                "Start Month:",
+                options=range(len(labels)),
+                index=default_start_idx,
+                format_func=lambda i: labels[i],
+            )
 
-        # ---- clamp end default to >= start ----
-        end_default_idx = max(default_end_idx, start_idx)
+            # End Month
+            end_idx = st.selectbox(
+                "End Month:",
+                options=range(start_idx, len(labels)),
+                index=end_default_idx - start_idx,
+                format_func=lambda i: labels[i],
+            )
 
-        end_idx = st.selectbox(
-            "End Month:",
-            options=range(start_idx, len(labels)),
-            index=end_default_idx - start_idx,
-            format_func=lambda i: labels[i],
-        )
-
-        # ---- resolve periods ----
-        start_period = periods[start_idx]
-        end_period = periods[end_idx]
-
-        # ---- filter (inclusive) ----
-        filtered_df = filtered_calls[
-            (filtered_calls["month"] >= start_period) &
-            (filtered_calls["month"] <= end_period)
-        ]
+            # Filter DataFrame
+            start_period = periods[start_idx]
+            end_period = periods[end_idx]
+            filtered_df = filtered_calls[
+                (filtered_calls["month"] >= start_period) & (filtered_calls["month"] <= end_period)
+            ]
 
         category_counts = (
             filtered_calls
@@ -535,7 +528,7 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=max(400, 40 * agg_df["team_name"].nunique())
+            height=max(200, 40 * agg_df["team_name"].nunique())
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
@@ -552,32 +545,7 @@ if phonesystem_file:
         fig.update_traces(
             hovertemplate="%{x}<br>%{color}: %{y} calls"
         )
-
-
-
         st.plotly_chart(fig, use_container_width=True)
-
-
-
-        # fig = px.bar(
-        #     agg_df_melt,
-        #     x="Count",
-        #     y="team_name",
-        #     color="CallType",
-        #     barmode="group",
-        #     orientation="h",
-        #     title="Call Volume by Team"
-        # )
-
-        # fig.update_layout(
-        #     height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
-        #     yaxis_title="Team",
-        #     xaxis_title="Call Count",
-        #     legend_title="Call Type"
-        # )
-
-        # st.plotly_chart(fig, use_container_width=True)
-
 
         # -------------------------------
         # 8. TIME BY CALL TYPE (Agent Time)
@@ -625,7 +593,7 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=max(400, 40 * agg_df["team_name"].nunique())
+            height=max(200, 40 * agg_df["team_name"].nunique())
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
@@ -643,6 +611,96 @@ if phonesystem_file:
         )
 
         st.plotly_chart(fig_time, use_container_width=True)
+
+
+
+
+        team_colors = {
+            "Admin": "#F2C94C",
+            "Business Support": "#9B6FF3",
+            "Account Manager": "#1ECAD3",
+            "DefaultTeam": "#6C7AF2",
+            "Inside Sales": "#F25022",
+            "Level 2 Support": "#00C389",
+            "Test": "#F29D59",
+            "Solutions": "#F76C8A",
+
+
+            "Collections": "#F25022",
+            "MCF Support":"#B08BF9",
+            "Customer Support ATL": "#1EC6E8",
+            "Field Services": "#00B294",
+            "Commissioning": "#F7A1E6",
+            "SDR Team": "#A6D785",
+            "Billing": "#5B7BE5",
+            "SB-AM": "#F9A55A",
+        }
+        # Add a color column to the DataFrame
+        monthly_team_calls['color'] = monthly_team_calls['team_name'].map(team_colors)
+
+        # Convert Timeframe to datetime
+        monthly_team_calls['Timeframe_dt'] = pd.to_datetime(monthly_team_calls['Timeframe'], format='%b-%Y')
+
+        # Sort by datetime to ensure correct order
+        monthly_team_calls = monthly_team_calls.sort_values('Timeframe_dt')
+
+        time_fig_calls = px.bar(
+            monthly_team_calls,
+            x='Timeframe_dt',             # use the datetime column for proper ordering
+            y='call_volume',
+            color='team_name',
+            color_discrete_map=team_colors,
+            title='Monthly Call Volume by Team',
+            labels={'call_volume': 'Call Volume', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
+        )
+
+        # Make it stacked
+        time_fig_calls.update_layout(
+            barmode='stack',
+            xaxis_tickangle=-45,
+            height=600,
+            yaxis=dict(title='Call Volume', rangemode='tozero')
+        )
+
+        # Format x-axis to show Month-Year nicely
+        time_fig_calls.update_xaxes(tickformat="%b-%Y")
+
+        time_fig_calls.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
 
