@@ -560,9 +560,12 @@ if phonesystem_file:
                 .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
-                    agent_total_time_mins=('Agent_Work_Time', 'sum') / 60  # <- use Agent_Work_Time
+                    agent_total_time_mins=('Agent_Work_Time', 'sum')  # sum first
                 )
         )
+
+        # Convert to minutes AFTER aggregation
+        time_by_call_type['agent_total_time_mins'] = time_by_call_type['agent_total_time_mins'] / 60
 
         time_pivot = time_by_call_type.pivot(
             index='team_name',
