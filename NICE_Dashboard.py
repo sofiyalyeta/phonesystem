@@ -394,80 +394,116 @@ if phonesystem_file:
                 .reset_index()
         )
 
-        # create main source dataframe
+        # -------------------------------
+        # 1. PER-CALL TIME (ROW LEVEL)
+        # -------------------------------
+        time_cols = ['PreQueue', 'InQueue', 'Agent_Time', 'Abandon_Time']
+
+        filtered_calls['customer_call_time'] = filtered_calls[time_cols].sum(axis=1)
+
+
+        # -------------------------------
+        # 2. ENSURE SINGLE CALL TYPE
+        # -------------------------------
+        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
+
+        # assumes exactly one of these == 1 per row
+        filtered_calls['call_type'] = (
+            filtered_calls[call_cols]
+                .idxmax(axis=1)
+        )
+
+
+        # -------------------------------
+        # 3. MAIN MONTHLY AGGREGATION
+        # -------------------------------
         monthly_team_calls = (
             filtered_calls
                 .groupby(["team_name", "Timeframe"])
                 .agg(
-                    # counts / metrics
+                    # counts
                     call_volume=('master_contact_id', 'count'),
+
+                    # time totals (REAL, no reconstruction later)
+                    total_customer_call_time=('customer_call_time', 'sum'),
                     prequeue_time=('PreQueue', 'sum'),
                     inqueue_time=('InQueue', 'sum'),
                     agent_time=('Agent_Time', 'sum'),
                     acw_time=('ACW_Seconds', 'sum'),
-                    agent_work_time=('Agent_Work_Time', 'sum'),
+                    agent_total_time=('Agent_Work_Time', 'sum'),
                     abandon_time=('Abandon_Time', 'sum'),
-                    total_calls_time=('Total_Time', 'sum'),
+
+                    # uniques
                     unique_agents_count=('agent_name', 'nunique'),
                     unique_skills_count=('skill_name', 'nunique'),
                     unique_campaigns_count=('campaign_name', 'nunique'),
 
-                    # lists of unique values
+                    # lists
                     agent_list=('agent_name', lambda x: list(x.dropna().unique())),
                     skill_list=('skill_name', lambda x: list(x.dropna().unique())),
                     campaign_list=('campaign_name', lambda x: list(x.dropna().unique())),
-
-                    # NEW: customer contacts as (name, call_count)
-                    Customer_Contacts=(
-                        'contact_name',
-                        lambda x: list(x.value_counts().items())
-                    )
+                    Customer_Contacts=('contact_name', lambda x: list(x.value_counts().items()))
                 )
                 .reset_index()
         )
 
+
+        # -------------------------------
+        # 4. CALL TYPE COUNTS (NO DOUBLE COUNT)
+        # -------------------------------
+        call_type_counts = (
+            filtered_calls
+                .groupby(['team_name', 'Timeframe', 'call_type'])
+                .size()
+                .unstack(fill_value=0)
+                .reset_index()
+        )
+
         monthly_team_calls = monthly_team_calls.merge(
-            category_counts,
+            call_type_counts,
             on=["team_name", "Timeframe"],
             how="left"
         )
 
+
+        # -------------------------------
+        # 5. DISPLAY TABLE
+        # -------------------------------
         display_df = monthly_team_calls.copy()
 
         list_cols = ['agent_list', 'skill_list', 'campaign_list', 'Customer_Contacts']
-
         for col in list_cols:
-            display_df[col] = display_df[col].apply(lambda x: ", ".join(map(str, x)) if isinstance(x, list) else "")
-
+            display_df[col] = display_df[col].apply(
+                lambda x: ", ".join(map(str, x)) if isinstance(x, list) else ""
+            )
 
         st.dataframe(display_df)
 
 
-        # Define expected call columns
-        call_cols = ['Inbound', 'Outbound', 'Voicemail','After Hours', 'No Agent', 'Other']
+        # -------------------------------
+        # 6. CALL TYPES BY TEAM (COUNTS)
+        # -------------------------------
+        existing_call_cols = [c for c in call_cols if c in monthly_team_calls.columns]
 
-        # Keep only columns that actually exist in the DataFrame
-        existing_call_cols = [col for col in call_cols if col in monthly_team_calls.columns]
-
-        # Aggregate by team
         agg_df = (
             monthly_team_calls
                 .groupby('team_name', as_index=False)[existing_call_cols]
                 .sum()
         )
 
-        # Compute total calls across available columns
         agg_df['Total Calls'] = agg_df[existing_call_cols].sum(axis=1)
 
-        # Sort by total calls (descending for table)
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
+
         st.text('Call Types by Team')
         st.dataframe(agg_df)
 
-        # Sort ascending for horizontal bar chart
+
+        # -------------------------------
+        # 7. PLOTLY BAR CHART
+        # -------------------------------
         agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
 
-        # Melt for Plotly using only available columns + Total Calls
         agg_df_melt = agg_df_sorted.melt(
             id_vars="team_name",
             value_vars=existing_call_cols + ["Total Calls"],
@@ -475,7 +511,6 @@ if phonesystem_file:
             value_name="Count"
         )
 
-        # Build Plotly chart
         fig = px.bar(
             agg_df_melt,
             x="Count",
@@ -486,7 +521,6 @@ if phonesystem_file:
             title="Call Volume by Team"
         )
 
-        # Auto-scale height
         fig.update_layout(
             height=max(600, 40 * agg_df_sorted["team_name"].nunique()),
             yaxis_title="Team",
@@ -494,11 +528,33 @@ if phonesystem_file:
             legend_title="Call Type"
         )
 
-        # Render in Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
 
-#call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
+        # -------------------------------
+        # 8. TIME BY CALL TYPE (THE FIX)
+        # -------------------------------
+        time_by_call_type = (
+            filtered_calls
+                .groupby(['team_name', 'call_type'], as_index=False)
+                .agg(
+                    total_calls=('master_contact_id', 'count'),
+                    total_customer_call_time=('customer_call_time', 'sum')
+                )
+        )
+
+        # Optional pivot for reporting
+        time_pivot = time_by_call_type.pivot(
+            index='team_name',
+            columns='call_type',
+            values='total_customer_call_time'
+        ).fillna(0)
+
+
+
+
+#agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
+
 
 
 
