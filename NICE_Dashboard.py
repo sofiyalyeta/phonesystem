@@ -184,29 +184,6 @@ if phonesystem_file:
         st.text(f"{excluded_calls} calls have been classified as spam and removed from the analysis.")
 
 
-        # # Convert start_date safely
-        # #total_calls["start_date"] = pd.to_datetime(total_calls["start_date"], errors="coerce")
-
-        # # Convert start_time safely (but DO NOT strip time)
-        # total_calls["start_time"] = pd.to_datetime(total_calls["start_time"], errors="coerce")
-
-        # # If start_time has no date component (time-only case), combine with start_date
-        # if total_calls["start_time"].dt.normalize().nunique() == 1:
-        #     total_calls["start_time"] = total_calls["start_date"] + (
-        #         total_calls["start_time"] - total_calls["start_time"].dt.normalize()
-        #     )
-
-        st.dataframe(total_calls)
-        st.write("start_time dtype:", total_calls["start_time"].dtype)
-        st.write(total_calls["start_time"].head(10))
-        st.write("Python types inside start_time column:")
-        st.write(total_calls["start_time"].apply(type).value_counts())
-        converted = pd.to_datetime(total_calls["start_time"], errors="coerce")
-        st.write("After pd.to_datetime conversion:")
-        st.write(converted.head(10))
-        st.write("Number of NaT after conversion:", converted.isna().sum())
-
-
         total_calls["Timeframe"] = pd.to_datetime(
             total_calls["start_date"],
             errors="coerce"
