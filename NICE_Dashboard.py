@@ -207,8 +207,12 @@ if phonesystem_file:
             total_calls["Timeframe"], format="%b-%Y"
         ).dt.to_period("M")
 
-        total_calls['start_time'] = total_calls['start_date'] + total_calls['start_time']
-
+        # Combining 'Edit Date' and 'Time' using str functions to make it a proper date/time data type
+        total_calls['start_time'] = pd.to_datetime(
+            total_calls['start_date'].astype(str) + " " + total_calls['start_time']. astype(str),
+            format = '%Y-%m-%d %H:%M:%S'
+        )# tweak this based on your actual data
+ 
 
         # normalize skill name and create categories for the type of call
         skill_clean = (
@@ -864,11 +868,6 @@ if phonesystem_file:
 
 
 # call_df_list = [total_calls, inbound_df, outbound_df, vm_df, na_df, other_df]
-
-
-
-
-
 
 
 # call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
