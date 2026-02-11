@@ -337,10 +337,19 @@ if phonesystem_file:
         exclude_outside_hours = st.toggle(
             "Exclude calls outside business hours?",
             value=False  # default = No
-        )
+        ) 
+        
+
 
         if exclude_outside_hours:
+            original_count = len(total_calls)
             total_calls = total_calls[total_calls['Business_Hours'] == 1].copy()
+            filtered_count = len(total_calls)
+            excluded_count = original_count - filtered_count
+            st.metric(
+                label="Calls Excluded",
+                value=excluded_count
+            )       
 
         selected_calls = st.multiselect(
             "Select call types:",
@@ -868,6 +877,11 @@ if phonesystem_file:
 
 
 # call_df_list = [total_calls, inbound_df, outbound_df, vm_df, na_df, other_df]
+
+
+
+
+
 
 
 # call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
