@@ -547,7 +547,7 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=max(150)
+            height=150
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
@@ -612,7 +612,7 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=max(150)
+            height=150
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
