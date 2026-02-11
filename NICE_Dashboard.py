@@ -187,6 +187,15 @@ if phonesystem_file:
         #total_calls['start_time'] = pd.to_datetime(total_calls['start_time'], errors='coerce')
 
         st.dataframe(total_calls)
+        st.write("start_time dtype:", total_calls["start_time"].dtype)
+        st.write(total_calls["start_time"].head(10))
+        st.write("Python types inside start_time column:")
+        st.write(total_calls["start_time"].apply(type).value_counts())
+        converted = pd.to_datetime(total_calls["start_time"], errors="coerce")
+        st.write("After pd.to_datetime conversion:")
+        st.write(converted.head(10))
+        st.write("Number of NaT after conversion:", converted.isna().sum())
+
 
         total_calls["Timeframe"] = pd.to_datetime(
             total_calls["start_date"],
@@ -258,7 +267,6 @@ if phonesystem_file:
 
             'No Assigned Team' : 'Other',
             'Default Team' : 'Other'
-            ''
         }
 
 
