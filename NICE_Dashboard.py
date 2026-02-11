@@ -547,7 +547,7 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=300
+            height=400
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
@@ -612,7 +612,7 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=300
+            height=400
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
@@ -630,9 +630,6 @@ if phonesystem_file:
         )
 
         st.plotly_chart(fig_time, use_container_width=True)
-
-
-
 
         team_colors = {
             "Admin": "#F2C94C",
@@ -688,16 +685,31 @@ if phonesystem_file:
         st.plotly_chart(time_fig_calls, use_container_width=True)
 
 
+        monthly_team_calls['agent_total_time_mins'] = monthly_team_calls['agent_total_time']/60
+
+        time_fig_work = px.bar(
+            monthly_team_calls,
+            x='Timeframe_dt',             # use the datetime column for proper ordering
+            y='agent_total_time_mins',
+            color='team_name',
+            color_discrete_map=team_colors,
+            title='Monthly Call Volume by Team',
+            labels={'agent_total_time_mins': 'total Agent Work Time (mins)', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
+        )
+
+        # Make it stacked
+        time_fig_work.update_layout(
+            barmode='stack',
+            xaxis_tickangle=-45,
+            height=600,
+            yaxis=dict(title='Call Volume', rangemode='tozero')
+        )
+
+        # Format x-axis to show Month-Year nicely
+        time_fig_work.update_xaxes(tickformat="%b-%Y")
 
 
-
-
-
-
-
-
-
-
+        st.plotly_chart(time_fig_work, use_container_width=True)
 
 
 
