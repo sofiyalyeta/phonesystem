@@ -182,7 +182,11 @@ if phonesystem_file:
         total_calls = total_calls.loc[~excluded_mask]
         st.text(f"{excluded_calls} calls have been classified as spam and removed from the analysis.")
 
+        st.dataframe(total_calls)
+
         total_calls['start_time'] = pd.to_datetime(total_calls['start_time'], errors='coerce')
+
+        st.dataframe(total_calls)
 
         total_calls["Timeframe"] = pd.to_datetime(
             total_calls["start_date"],
@@ -195,6 +199,7 @@ if phonesystem_file:
         total_calls['ACW_Seconds'].fillna(0) + total_calls['Agent_Time'].fillna(0),
         errors='coerce'
         )
+
 
         #total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
 
@@ -320,12 +325,6 @@ if phonesystem_file:
             # Return 1 if inside business hours, else 0
             return int(start_dt <= call_time <= end_dt)
 
-
-            # Construct start and end time for the call day
-            start_time = call_time.replace(hour=start_h, minute=start_m, second=0, microsecond=0)
-            end_time = call_time.replace(hour=end_h, minute=end_m, second=0, microsecond=0)
-
-            return int(start_time <= call_time <= end_time)
 
         # Apply the function
         total_calls['Business_Hours'] = total_calls.apply(is_business_hours, axis=1)
