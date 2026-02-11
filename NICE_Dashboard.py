@@ -171,6 +171,7 @@ if phonesystem_file:
         #remove milliseconds after case work column
         total_calls.drop(columns =['ACW_Time'], inplace = True)
         #total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
+        st.dataframe(total_calls)
         total_calls.sort_values("start_time", inplace=True)
 
         total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
