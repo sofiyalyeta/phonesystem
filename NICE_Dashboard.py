@@ -489,6 +489,7 @@ if phonesystem_file:
         st.dataframe(display_df)
 
         call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
+
         # -------------------------------
         # 6. CALL TYPES BY TEAM (COUNTS)
         # -------------------------------
@@ -505,7 +506,6 @@ if phonesystem_file:
         agg_df = agg_df.sort_values('Total Calls', ascending=False)
 
         st.text('Call Types by Team')
-        #st.dataframe(agg_df)
 
         # Define a consistent color mapping for call types
         call_colors = {
@@ -523,12 +523,7 @@ if phonesystem_file:
         # -------------------------------
         agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
 
-        # agg_df_melt = agg_df_sorted.melt(
-        #     id_vars="team_name",
-        #     value_vars=existing_call_cols + ["Total Calls"],
-        #     var_name="CallType",
-        #     value_name="Count"
-        # )
+
         # Long format for stacking
         plot_df = agg_df.melt(
             id_vars="team_name",
@@ -552,7 +547,7 @@ if phonesystem_file:
             xaxis_title="Team",
             yaxis_title="Number of Calls",
             legend_title="Call Type",
-            height=max(150, 40 * agg_df["team_name"].nunique())
+            height=max(150)
         )
         fig.update_xaxes(tickangle=-45)
         fig.update_xaxes(
@@ -617,7 +612,7 @@ if phonesystem_file:
             xaxis_title='Team',
             yaxis_title='Total Agent Time (mins)',
             legend_title='Call Type',
-            height=max(150, 40 * agg_df["team_name"].nunique())
+            height=max(150)
         )
         fig_time.update_xaxes(tickangle=-45)
         fig_time.update_xaxes(
@@ -689,9 +684,8 @@ if phonesystem_file:
         # Format x-axis to show Month-Year nicely
         time_fig_calls.update_xaxes(tickformat="%b-%Y")
 
-        time_fig_calls.show()
 
-
+        st.plotly_chart(time_fig_calls, use_container_width=True)
 
 
 
