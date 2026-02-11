@@ -681,11 +681,16 @@ if phonesystem_file:
         # Format x-axis to show Month-Year nicely
         time_fig_calls.update_xaxes(tickformat="%b-%Y")
 
-
         st.plotly_chart(time_fig_calls, use_container_width=True)
 
 
-        monthly_team_calls['agent_total_time_mins'] = monthly_team_calls['agent_total_time']/60
+        monthly_team_calls['agent_total_time'] = pd.to_numeric(
+            monthly_team_calls['agent_total_time'], errors='coerce'
+        )
+
+        monthly_team_calls['agent_total_time_mins'] = (
+            monthly_team_calls['agent_total_time'] / 60
+        )
 
         time_fig_work = px.bar(
             monthly_team_calls,
@@ -693,8 +698,8 @@ if phonesystem_file:
             y='agent_total_time_mins',
             color='team_name',
             color_discrete_map=team_colors,
-            title='Monthly Call Volume by Team',
-            labels={'agent_total_time_mins': 'total Agent Work Time (mins)', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
+            title='Monthly Agent Work Time by Team',
+            labels={'agent_total_time_mins': 'Total Agent Work Time (mins)', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
         )
 
         # Make it stacked
@@ -702,12 +707,11 @@ if phonesystem_file:
             barmode='stack',
             xaxis_tickangle=-45,
             height=600,
-            yaxis=dict(title='Call Volume', rangemode='tozero')
+            yaxis=dict(title='', rangemode='tozero')
         )
 
         # Format x-axis to show Month-Year nicely
         time_fig_work.update_xaxes(tickformat="%b-%Y")
-
 
         st.plotly_chart(time_fig_work, use_container_width=True)
 
