@@ -186,8 +186,11 @@ if phonesystem_file:
 
         total_calls["Timeframe"] = pd.to_datetime(
             total_calls["start_date"],
-            errors="coerce"
-        )
+            errors="coerce")
+
+
+
+
         total_calls["Timeframe"] = total_calls["Timeframe"].dt.strftime("%b-%Y")
         #total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
         #total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
@@ -203,6 +206,8 @@ if phonesystem_file:
         total_calls["timeframe_period"] = pd.to_datetime(
             total_calls["Timeframe"], format="%b-%Y"
         ).dt.to_period("M")
+
+        total_calls['start_time'] = total_calls['start_date'] + total_calls['start_time']
 
 
         # normalize skill name and create categories for the type of call
