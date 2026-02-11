@@ -184,19 +184,17 @@ if phonesystem_file:
         st.text(f"{excluded_calls} calls have been classified as spam and removed from the analysis.")
 
 
-        # Convert start_date to datetime
+        # Convert start_date safely
         total_calls["start_date"] = pd.to_datetime(total_calls["start_date"], errors="coerce")
 
-        # Convert start_time to time safely
-        total_calls["start_time"] = pd.to_datetime(total_calls["start_time"], errors="coerce").dt.time
+        # Convert start_time safely (but DO NOT strip time)
+        total_calls["start_time"] = pd.to_datetime(total_calls["start_time"], errors="coerce")
 
-        # Combine date + time into full datetime
-        total_calls["start_time"] = total_calls.apply(
-            lambda row: pd.Timestamp.combine(row["start_date"], row["start_time"])
-            if pd.notna(row["start_date"]) and pd.notna(row["start_time"])
-            else pd.NaT,
-            axis=1
-        )
+        # If start_time has no date component (time-only case), combine with start_date
+        if total_calls["start_time"].dt.normalize().nunique() == 1:
+            total_calls["start_time"] = total_calls["start_date"] + (
+                total_calls["start_time"] - total_calls["start_time"].dt.normalize()
+            )
 
         st.dataframe(total_calls)
         st.write("start_time dtype:", total_calls["start_time"].dtype)
