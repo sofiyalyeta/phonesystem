@@ -217,6 +217,8 @@ if phonesystem_file:
         )# tweak this based on your actual data
  
 
+        total_calls['customer_call_time'] = total_calls[time_cols].sum(axis=1)
+
         # normalize skill name and create categories for the type of call
         skill_clean = (
             total_calls["skill_name"]
