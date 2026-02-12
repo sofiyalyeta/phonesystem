@@ -454,7 +454,7 @@ if phonesystem_file:
                     "agent_list": list(df["agent_name"].dropna().unique()),
                     "skill_list": list(df["skill_name"].dropna().unique()),
                     "campaign_list": list(df["campaign_name"].dropna().unique()),
-                    "customer_contacts": list(df["contact_name"].value_counts().items()),
+                    "customer_contacts": list(df["contact_name"].value_counts().items())
 
                     # # {master_contact_id: [contact_id, contact_id, ...]}
                     # "case_interactions": (
