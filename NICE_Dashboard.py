@@ -169,6 +169,7 @@ if phonesystem_file:
         total_calls = pd.read_excel(phonesystem_file)
 
 
+        
         #remove milliseconds after case work column
         total_calls.drop(columns =['ACW_Time'], inplace = True)
         #total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
@@ -241,6 +242,7 @@ if phonesystem_file:
         
 
 
+
         # Map of teams → department
         team_to_dept = {
             'Field Services': 'Deployment',
@@ -271,16 +273,8 @@ if phonesystem_file:
         # Create new column
         total_calls['department'] = total_calls['team_name'].map(team_to_dept)
 
-
         # Example options
         teams = ["Customer Support", "Deployment", "Sales", "Billing and Collections", "Technical Team", "Other"]
-
-        # Multi-select widget
-        selected_teams = st.multiselect(
-            "Select team to view calls for:",  # Label
-            options=teams,                     # Options list
-            default=["Customer Support", "Deployment", "Sales", "Billing and Collections", "Technical Team", "Other"]     # default selection
-        )
 
         # Define static business hours for other teams
         business_hours = {
@@ -339,7 +333,7 @@ if phonesystem_file:
             "Exclude calls outside business hours?",
             value=False  # default = No
         ) 
-        
+
 
 
         if exclude_outside_hours:
@@ -352,601 +346,65 @@ if phonesystem_file:
                 value=excluded_count
             )       
 
-        selected_calls = st.multiselect(
-            "Select call types:",
-            options= ["After Hours","No Agent", "Inbound", "Outbound", "Voicemail", "Other"],
-            default = ["After Hours","No Agent", "Inbound", "Outbound", "Voicemail", "Other"]
-        )
 
 
-        # Filter based on selection and business hours
-        filtered_calls = total_calls[
-            (total_calls['department'].isin(selected_teams)) &
-            (total_calls['call_category'].isin(selected_calls))
-        ]
+# Initialize empty dict to store results
+dfs = {
+    "monthly_ib_calls": pd.DataFrame(),
+    "monthly_ob_calls": pd.DataFrame(),
+    "monthly_vm_calls": pd.DataFrame(),
+    "monthly_ah_calls": pd.DataFrame(),
+    "monthly_na_calls": pd.DataFrame()
+}
+
+# Map call category to dataframe name
+call_category_map = {
+    "Inbound": "monthly_ib_calls",
+    "Outbound": "monthly_ob_calls",
+    "Voicemail": "monthly_vm_calls",
+    "After Hours": "monthly_ah_calls",
+    "No Agent": "monthly_na_calls"
+}
+
+# Loop through each category
+for category, df_name in call_category_map.items():
+    df_filtered = total_calls[total_calls["call_category"] == category].copy()
+
+    if df_filtered.empty:
+        dfs[df_name] = pd.DataFrame()
+        continue
+
+    monthly_team_calls = (
+        df_filtered
+        .groupby(["team_name", "Timeframe"])
+        .apply(lambda df: pd.Series({
+            # counts
+            "call_volume": df["master_contact_id"].count(),
+            "total_customer_call_time": df["customer_call_time"].sum(),
+            "prequeue_time": df["PreQueue"].sum(),
+            "inqueue_time": df["InQueue"].sum(),
+            "agent_time": df["Agent_Time"].sum(),
+            "acw_time": df["ACW_Seconds"].sum(),
+            "agent_total_time": df["Agent_Work_Time"].sum(),
+            "abandon_time": df["Abandon_Time"].sum(),
+            # uniques
+            "unique_agents_count": df["agent_name"].nunique(),
+            "unique_skills_count": df["skill_name"].nunique(),
+            "unique_campaigns_count": df["campaign_name"].nunique(),
+            # lists
+            "agent_list": list(df["agent_name"].dropna().unique()),
+            "skill_list": list(df["skill_name"].dropna().unique()),
+            "campaign_list": list(df["campaign_name"].dropna().unique()),
+            # case interactions
+            "case_interactions": df.groupby("master_contact_id")["contact_id"].apply(list).to_dict(),
+            # engagement time
+            "master_contact_id_start_times": df.groupby("master_contact_id")["start_time"].apply(list).to_dict(),
+            # customer contacts
+            "customer_contacts": df.groupby("contact_name").apply(lambda x: list(zip(x["DNIS"], x["start_time"]))).to_dict()
+        }))
+        .reset_index()
+    )
+
+    dfs[df_name] = monthly_team_calls
 
 
-        timeframe_options = (
-            total_calls[["Timeframe", "timeframe_period"]]
-            .drop_duplicates()
-            .sort_values("timeframe_period")
-        )
-
-        labels = timeframe_options["Timeframe"].tolist()
-        periods = timeframe_options["timeframe_period"].tolist()
-
-        if not labels:
-            st.warning("No calls found for the selected teams, call types, or business hours.")
-            filtered_df = pd.DataFrame()  # empty placeholder
-        else:
-            # ---- defaults ----
-            default_start_period = pd.Period("2024-03", freq="M")
-            default_start_idx = periods.index(default_start_period) if default_start_period in periods else 0
-            default_end_idx = len(periods) - 1
-            end_default_idx = max(default_end_idx, default_start_idx)
-
-            # Start Month
-            start_idx = st.selectbox(
-                "Start Month:",
-                options=range(len(labels)),
-                index=default_start_idx,
-                format_func=lambda i: labels[i],
-            )
-
-            # End Month
-            end_idx = st.selectbox(
-                "End Month:",
-                options=range(start_idx, len(labels)),
-                index=end_default_idx - start_idx,
-                format_func=lambda i: labels[i],
-            )
-
-            # Filter DataFrame
-            start_period = periods[start_idx]
-            end_period = periods[end_idx]
-            filtered_df = total_calls[
-                (total_calls["month"] >= start_period) & (total_calls["month"] <= end_period)
-            ]
-
-        category_counts = (
-            filtered_calls
-                .groupby(["team_name", "Timeframe", "call_category"])
-                .size()
-                .unstack(fill_value=0)
-                .reset_index()
-        )
-
-        # -------------------------------
-        # 1. PER-CALL TIME (ROW LEVEL)
-        # -------------------------------
-        time_cols = ['PreQueue', 'InQueue', 'Agent_Time', 'Abandon_Time']
-
-        filtered_calls['customer_call_time'] = filtered_calls[time_cols].sum(axis=1)
-
-
-        # -------------------------------
-        # 3. MAIN MONTHLY AGGREGATION
-        # -------------------------------
-
-
-
-
-        names = ["monthly_ib_calls", "monthly_ob_calls", "monthly_vm_calls", "monthly_ah_calls", "monthly_na_calls"]
-        dfs = {name: pd.DataFrame() for name in names}
-        monthly_team_calls = (
-            filtered_calls
-                .groupby(["team_name", "Timeframe"])
-                .apply(lambda df: pd.Series({
-                    # counts
-                    "call_volume": df["master_contact_id"].count(),
-
-                    # time totals
-                    "total_customer_call_time": df["customer_call_time"].sum(),
-                    "prequeue_time": df["PreQueue"].sum(),
-                    "inqueue_time": df["InQueue"].sum(),
-                    "agent_time": df["Agent_Time"].sum(),
-                    "acw_time": df["ACW_Seconds"].sum(),
-                    "agent_total_time": df["Agent_Work_Time"].sum(),
-                    "abandon_time": df["Abandon_Time"].sum(),
-
-                    # uniques
-                    "unique_agents_count": df["agent_name"].nunique(),
-                    "unique_skills_count": df["skill_name"].nunique(),
-                    "unique_campaigns_count": df["campaign_name"].nunique(),
-
-                    # lists
-                    "agent_list": list(df["agent_name"].dropna().unique()),
-                    "skill_list": list(df["skill_name"].dropna().unique()),
-                    "campaign_list": list(df["campaign_name"].dropna().unique()),
-                    "customer_contacts": list(df["contact_name"].value_counts().items()),
-
-                    # {master_contact_id: [contact_id, contact_id, ...]}
-                    "case_interactions": (
-                        df.groupby("master_contact_id")["contact_id"]
-                        .apply(list)
-                        .to_dict()
-                    ),
-
-                    # engagement_time
-                    # {contact_id: [start_time, start_time, ...]}
-                    "master_contact_id": (
-                        df.groupby("master_contact_id")["start_time"]
-                        .apply(list)
-                        .to_dict()
-                    ),
-
-                    # customer_contact
-                    # {contact_name: [(DNIS, start_time), (DNIS, start_time), ...]}
-                    "customer_contacts" : (
-                        df.groupby("contact_name")
-                        .apply(lambda x: list(zip(x["DNIS"], x["start_time"])))
-                        .to_dict()
-                    )
-                }))
-                .reset_index()
-        )
-
-        total_ib_calls = total_calls[total_calls['call_category'] == "Inbound"].copy()
-        total_ob_calls = total_calls[total_calls['call_category'] == "Outbound"].copy()
-        total_vm_calls = total_calls[total_calls['call_category'] == "Voicemail"].copy()
-        total_ah_calls = total_calls[total_calls['call_category'] == "After Hours"].copy()
-        total_na_calls = total_calls[total_calls['call_category'] == "No Agent"].copy()
-
-
-
-
-
-
-
-
-        # -------------------------------
-        # 4. CALL TYPE COUNTS (NO DOUBLE COUNT)
-        # -------------------------------
-        call_type_counts = (
-            filtered_calls
-                .groupby(['team_name', 'Timeframe', 'call_category'])
-                .size()
-                .unstack(fill_value=0)
-                .reset_index()
-        )
-
-        monthly_team_calls = monthly_team_calls.merge(
-            call_type_counts,
-            on=["team_name", "Timeframe"],
-            how="left"
-        )
-
-
-        # -------------------------------
-        # 5. DISPLAY TABLE
-        # -------------------------------
-        display_df = monthly_team_calls.copy()
-
-        list_cols = ['agent_list', 'skill_list', 'campaign_list', 'customer_contacts']
-        for col in list_cols:
-            display_df[col] = display_df[col].apply(
-                lambda x: ", ".join(map(str, x)) if isinstance(x, list) else ""
-            )
-
-        #st.dataframe(display_df)
-
-        call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
-
-        # -------------------------------
-        # 6. CALL TYPES BY TEAM (COUNTS)
-        # -------------------------------
-        existing_call_cols = [c for c in call_cols if c in monthly_team_calls.columns]
-
-        agg_df = (
-            monthly_team_calls
-                .groupby('team_name', as_index=False)[existing_call_cols]
-                .sum()
-        )
-
-        agg_df['Total Calls'] = agg_df[existing_call_cols].sum(axis=1)
-
-        agg_df = agg_df.sort_values('Total Calls', ascending=False)
-
-        st.text('Call Types by Team')
-
-        # Define a consistent color mapping for call types
-        call_colors = {
-            "Inbound": "#0B3D91",
-            "Outbound": "#89CFF0",
-            "Voicemail": "#FFD700",
-            "After Hours": "#AB63FA",
-            "No Agent":  "#EF553B",
-            "Other": "#808080",
-        }
-
-
-        # -------------------------------
-        # 7. PLOTLY BAR CHART
-        # -------------------------------
-        agg_df_sorted = agg_df.sort_values("Total Calls", ascending=True)
-
-
-        # Long format for stacking
-        plot_df = agg_df.melt(
-            id_vars="team_name",
-            value_vars=existing_call_cols,
-            var_name="Call Type",
-            value_name="Calls"
-        )
-
-        # Calls by team
-        fig = px.bar(
-            plot_df,
-            x="team_name",
-            y="Calls",
-            color="Call Type",
-            title="Call Types by Team",
-            text_auto=True,
-            color_discrete_map=call_colors
-        )
-        fig.update_layout(
-            barmode="stack",
-            xaxis_title="Team",
-            yaxis_title="Number of Calls",
-            legend_title="Call Type",
-            height=400
-        )
-        fig.update_xaxes(tickangle=-45)
-        fig.update_xaxes(
-            categoryorder="array",
-            categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
-        )
-
-
-        fig.update_traces(
-            texttemplate="%{text}" if plot_df["Calls"].min() > 10 else "",
-            textposition="inside"
-        )
-
-        fig.update_traces(
-            hovertemplate="%{x}<br>%{color}: %{y} calls"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # -------------------------------
-        # 8. TIME BY CALL TYPE (Agent Time)
-        # -------------------------------
-        time_by_call_type = (
-            filtered_calls
-                .groupby(['team_name', 'call_category'], as_index=False)
-                .agg(
-                    total_calls=('master_contact_id', 'count'),
-                    agent_total_time=('agent_total_time', 'sum')  # sum first
-                )
-        )
-
-        # Convert to minutes AFTER aggregation
-        time_by_call_type['agent_total_time_mins'] = time_by_call_type['agent_total_time'] / 60
-
-        time_pivot = time_by_call_type.pivot(
-            index='team_name',
-            columns='call_category',
-            values='agent_total_time_mins'   # <- matches the aggregated column name
-        ).fillna(0)
-
-        #st.dataframe(time_pivot)
-        
-        if not time_pivot.empty:
-            # Reset index for plotting
-            plot_time_df = time_pivot.reset_index().melt(
-                id_vars='team_name',
-                var_name='Call Type',
-                value_name='Agent Time (mins)'
-            )
-
-        # Agent time by call type
-        fig_time = px.bar(
-            plot_time_df,
-            x='team_name',
-            y='Agent Time (mins)',
-            color='Call Type',
-            title='Agent Work Time by Call Type and Team',
-            text_auto=True,
-            color_discrete_map=call_colors
-        )
-        fig_time.update_layout(
-            barmode='stack',
-            xaxis_title='Team',
-            yaxis_title='Total Agent Time (mins)',
-            legend_title='Call Type',
-            height=400
-        )
-        fig_time.update_xaxes(tickangle=-45)
-        fig_time.update_xaxes(
-            categoryorder="array",
-            categoryarray=agg_df.sort_values("Total Calls", ascending=False)["team_name"]
-        )
-
-        fig_time.update_traces(
-            texttemplate="%{text}" if plot_time_df["Agent Time (mins)"].min() > 10 else "",
-            textposition="inside"
-        )
-
-        fig_time.update_traces(
-            hovertemplate="%{x}<br>%{color}: %{y} agent work time"
-        )
-
-        st.plotly_chart(fig_time, use_container_width=True)
-
-        team_colors = {
-            "Admin": "#F2C94C",
-            "Business Support": "#9B6FF3",
-            "Account Manager": "#1ECAD3",
-            "DefaultTeam": "#6C7AF2",
-            "Inside Sales": "#F25022",
-            "Level 2 Support": "#00C389",
-            "Test": "#F29D59",
-            "Solutions": "#F76C8A",
-
-
-            "Collections": "#F25022",
-            "MCF Support":"#B08BF9",
-            "Customer Support ATL": "#1EC6E8",
-            "Field Services": "#00B294",
-            "Commissioning": "#F7A1E6",
-            "SDR Team": "#A6D785",
-            "Billing": "#5B7BE5",
-            "SB-AM": "#F9A55A",
-        }
-        # Add a color column to the DataFrame
-        monthly_team_calls['color'] = monthly_team_calls['team_name'].map(team_colors)
-
-        # Convert Timeframe to datetime
-        monthly_team_calls['Timeframe_dt'] = pd.to_datetime(monthly_team_calls['Timeframe'], format='%b-%Y')
-
-        # Sort by datetime to ensure correct order
-        monthly_team_calls = monthly_team_calls.sort_values('Timeframe_dt')
-
-        time_fig_calls = px.bar(
-            monthly_team_calls,
-            x='Timeframe_dt',             # use the datetime column for proper ordering
-            y='call_volume',
-            color='team_name',
-            color_discrete_map=team_colors,
-            title='Monthly Call Volume by Team',
-            labels={'call_volume': 'Call Volume', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
-        )
-
-        # Make it stacked
-        time_fig_calls.update_layout(
-            barmode='stack',
-            xaxis_tickangle=-45,
-            height=550,
-            yaxis=dict(title='Call Volume', rangemode='tozero')
-        )
-
-        # Format x-axis to show Month-Year nicely
-        time_fig_calls.update_xaxes(tickformat="%b-%Y")
-
-        st.plotly_chart(time_fig_calls, use_container_width=True)
-
-
-        monthly_team_calls['agent_total_time'] = pd.to_numeric(
-            monthly_team_calls['agent_total_time'], errors='coerce'
-        )
-
-        monthly_team_calls['agent_total_time_mins'] = (
-            monthly_team_calls['agent_total_time'] / 60
-        )
-
-        time_fig_work = px.bar(
-            monthly_team_calls,
-            x='Timeframe_dt',             # use the datetime column for proper ordering
-            y='agent_total_time_mins',
-            color='team_name',
-            color_discrete_map=team_colors,
-            title='Monthly Agent Work Time by Team',
-            labels={'agent_total_time_mins': 'Total Agent Work Time (mins)', 'Timeframe_dt': 'Month', 'team_name': 'Team'}
-        )
-
-        # Make it stacked
-        time_fig_work.update_layout(
-            barmode='stack',
-            xaxis_tickangle=-45,
-            height=550,
-            yaxis=dict(title='', rangemode='tozero')
-        )
-
-        # Format x-axis to show Month-Year nicely
-        time_fig_work.update_xaxes(tickformat="%b-%Y")
-
-        st.plotly_chart(time_fig_work, use_container_width=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#agg_df['Total Calls'] == monthly_team_calls.groupby('team_name')['call_volume'].sum()
-
-
-
-
-        # ib_category_counts = (
-        #     inbound_df
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # ob_category_counts = (
-        #     outbound_df
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # vm_category_counts = (
-        #     vm_df
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # na_category_counts = (
-        #     na_df
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # other_category_counts = (
-        #     other_df
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # category_counts = (
-        #     total_calls
-        #         .groupby(["team_name", "Timeframe", "call_category"])
-        #         .size()
-        #         .unstack(fill_value=0)
-        #         .reset_index()
-        # )
-        # category_counts
-        # category_count_dfs = [ib_category_counts, vm_category_counts, na_category_counts, category_counts]
-
-
-        # #add button option to filter out calls that happened outside of business hours
-        # if st.button("Exclude calls outside business hours?"):
-        #     # Make sure 'start_time' is datetime
-        #     total_calls['start_time'] = pd.to_datetime(total_calls['start_time'])
-
-        #     # Define working hours
-        #     start_hour = 7          # 7:00 AM
-        #     end_hour = 18           # 6:30 PM = 18:30
-        #     end_minute = 30
-
-        #     # Filter within working hours
-        #     total_calls = total_calls[
-        #         ((total_calls['start_time'].dt.hour > start_hour) |
-        #         ((total_calls['start_time'].dt.hour == start_hour))) &
-        #         ((total_calls['start_time'].dt.hour < end_hour) |
-        #         ((total_calls['start_time'].dt.hour == end_hour) &
-        #         (total_calls['start_time'].dt.minute <= end_minute)))
-        #     ]
-
-        #     st.success("Calls outside business hours (7:00 AM – 6:30 PM) have been removed.")
-
-
-        # monthly_team_calls = (
-        #     total_calls
-        #         .groupby(["team_name", "Timeframe"])
-        #         .agg(
-        #             # counts / metrics
-        #             call_volume=('master_contact_id', 'count'),
-        #             prequeue_time=('PreQueue', 'sum'),
-        #             inqueue_time=('InQueue', 'sum'),
-        #             agent_time=('Agent_Time', 'sum'),
-        #             acw_time=('ACW_Seconds', 'sum'),
-        #             abandon_time=('Abandon_Time', 'sum'),
-        #             total_calls_time=('Total_Time', 'sum'),
-        #             unique_agents_count=('agent_name', 'nunique'),
-        #             unique_skills_count=('skill_name', 'nunique'),
-        #             unique_campaigns_count=('campaign_name', 'nunique'),
-        #             unique_DNIS_count=('DNIS', 'nunique'),
-        #             unique_ANI_count=('ANI', 'nunique'),
-
-
-        #             # lists of unique values
-        #             agent_list=('agent_name', lambda x: list(x.dropna().unique())),
-        #             skill_list=('skill_name', lambda x: list(x.dropna().unique())),
-        #             campaign_list=('campaign_name', lambda x: list(x.dropna().unique())),
-
-        #             # customer contacts as (name, call_count)
-        #             Customer_Contacts=(
-        #                 'contact_name',
-        #                 lambda x: list(x.value_counts().items())
-        #             )
-        #         )
-        #         .reset_index()
-        # )
-
-
-
-
-
-
-
-
-
-
-
-
-
-# total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
-
-# total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
-# total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
-# total_calls['Agent_Work_Seconds'] = total_calls['ACW_Seconds'] + total_calls['Agent_Time']
-# total_calls['Agent_Work_Mins'] = total_calls['Agent_Work_Seconds'] / 60
-
-
-# monthly_team_calls = monthly_team_calls.merge(
-#     category_counts,
-#     on=["team_name", "Timeframe"],
-#     how="left"
-# )
-
-# monthly_team_calls.columns
-
-
-
-#         inbound_df = total_calls[total_calls["call_category"] == "Inbound"].copy()
-#         outbound_df = total_calls[total_calls["call_category"] == "Outbound"].copy()
-#         vm_df = total_calls[total_calls["call_category"] == "Voicemail"].copy()
-#         na_df = total_calls[total_calls["call_category"] == "No Agent"].copy()
-#         other_df = total_calls[total_calls["call_category"] == "Other"].copy()
-#         call_df_list = [total_calls, inbound_df, outbound_df, vm_df, na_df, other_df]
-#         call_df_names = ['All Calls', 'Inbound Calls', 'Outbound Calls', 'Voicemails', 'No Agent', 'Other']
-
-
-
-# call_df_names = ['All Calls', 'Inbound Calls', 'Outbound Calls', 'Voicemails', 'No Agent', 'Other']
-
-
-
-# call_df_list = [total_calls, inbound_df, outbound_df, vm_df, na_df, other_df]
-
-
-
-
-
-
-
-# call_cols = ['Inbound', 'Outbound', 'Voicemail', 'No Agent', 'Other']
-# time_cols = [
-#             'agent_time', 
-#              'acw_time', 
-#              'abandon_time',
-#              'total_calls_time'
-#              ]
-
-# # Sum total hours for each row
-# monthly_team_calls['total_calls_time'] = monthly_team_calls[time_cols].sum(axis=1)
-
-# # Aggregate total calls and total hours per team
-# agg = monthly_team_calls.groupby('team_name', as_index=False).agg(
-#     total_calls_time=('total_calls_time', 'sum'),
-#     **{col: ('{}'.format(col), 'sum') for col in call_cols}
-# )
-# agg
