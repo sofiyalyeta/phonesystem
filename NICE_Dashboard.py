@@ -410,4 +410,9 @@ if phonesystem_file:
             dfs[df_name] = monthly_team_calls
 
         
-    st.dataframe("monthly_ib_calls")
+        for category, df_name in call_category_map.items():
+            st.subheader(f"{category} Calls")
+            if dfs[df_name].empty:
+                st.text("No data available")
+            else:
+                st.dataframe(dfs[df_name])
