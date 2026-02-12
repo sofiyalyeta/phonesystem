@@ -728,7 +728,7 @@ if phonesystem_file:
             for col in monthly_team_calls.columns
         }
 
-        st.json(type_summary)
+        st.write(type_summary)
 
 
 
