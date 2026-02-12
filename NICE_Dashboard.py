@@ -280,7 +280,6 @@ if phonesystem_file:
             default=["Customer Support", "Deployment", "Sales", "Billing and Collections", "Technical Team", "Other"]     # default selection
         )
 
-
         # Define static business hours for other teams
         business_hours = {
             "Customer Support": (7, 0, 18, 30),   # 7:00 AM - 6:30 PM
@@ -426,6 +425,14 @@ if phonesystem_file:
         # -------------------------------
         # 3. MAIN MONTHLY AGGREGATION
         # -------------------------------
+        total_ib_calls = total_calls[total_calls['call_category'] == "Inbound"].copy()
+        total_ob_calls = total_calls[total_calls['call_category'] == "Outbound"].copy()
+        total_vm_calls = total_calls[total_calls['call_category'] == "Voice Mail"].copy()
+        total_ah_calls = total_calls[total_calls['call_category'] == "After Hours"].copy()
+        total_na_calls = total_calls[total_calls['call_category'] == "No Agent"].copy()
+
+
+
         monthly_team_calls = (
             filtered_calls
                 .groupby(["team_name", "Timeframe"])
@@ -456,7 +463,9 @@ if phonesystem_file:
                 .reset_index()
         )
 
-
+        for col in monthly_team_calls.columns:
+            st.write(f"\nColumn: {col}")
+            st.write(monthly_team_calls[col].map(lambda x: type(x).__name__).value_counts())
         # -------------------------------
         # 4. CALL TYPE COUNTS (NO DOUBLE COUNT)
         # -------------------------------
@@ -674,7 +683,7 @@ if phonesystem_file:
         time_fig_calls.update_layout(
             barmode='stack',
             xaxis_tickangle=-45,
-            height=600,
+            height=550,
             yaxis=dict(title='Call Volume', rangemode='tozero')
         )
 
@@ -706,7 +715,7 @@ if phonesystem_file:
         time_fig_work.update_layout(
             barmode='stack',
             xaxis_tickangle=-45,
-            height=600,
+            height=550,
             yaxis=dict(title='', rangemode='tozero')
         )
 
