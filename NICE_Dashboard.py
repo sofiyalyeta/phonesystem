@@ -528,7 +528,7 @@ if phonesystem_file:
                 lambda x: ", ".join(map(str, x)) if isinstance(x, list) else ""
             )
 
-        st.dataframe(display_df)
+        #st.dataframe(display_df)
 
         call_cols = ['Inbound', 'Outbound', 'Voicemail', 'After Hours', 'No Agent', 'Other']
 
