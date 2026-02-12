@@ -456,28 +456,28 @@ if phonesystem_file:
                     "campaign_list": list(df["campaign_name"].dropna().unique()),
                     "customer_contacts": list(df["contact_name"].value_counts().items()),
 
-                    # {master_contact_id: [contact_id, contact_id, ...]}
-                    "case_interactions": (
-                        df.groupby("master_contact_id")["contact_id"]
-                        .apply(list)
-                        .to_dict()
-                    ),
+                    # # {master_contact_id: [contact_id, contact_id, ...]}
+                    # "case_interactions": (
+                    #     df.groupby("master_contact_id")["contact_id"]
+                    #     .apply(list)
+                    #     .to_dict()
+                    # ),
 
-                    # engagement_time
-                    # {contact_id: [start_time, start_time, ...]}
-                    "master_contact_id": (
-                        df.groupby("master_contact_id")["start_time"]
-                        .apply(list)
-                        .to_dict()
-                    ),
+                    # # engagement_time
+                    # # {contact_id: [start_time, start_time, ...]}
+                    # "master_contact_id": (
+                    #     df.groupby("master_contact_id")["start_time"]
+                    #     .apply(list)
+                    #     .to_dict()
+                    # ),
 
-                    # customer_contact
-                    # {contact_name: [start_time, start_time, ...]}
-                    "customer_contact": (
-                        df.groupby("contact_name")["start_time"]
-                        .apply(list)
-                        .to_dict()
-                    )
+                    # # customer_contact
+                    # # {contact_name: [start_time, start_time, ...]}
+                    # "customer_contact": (
+                    #     df.groupby("contact_name")["start_time"]
+                    #     .apply(list)
+                    #     .to_dict()
+                    # )
 
                 }))
                 .reset_index()
