@@ -398,7 +398,7 @@ if phonesystem_file:
                     "skill_list": list(df["skill_name"].dropna().unique()),
                     "campaign_list": list(df["campaign_name"].dropna().unique()),
                     # case interactions
-                    "case_interactions": df.groupby("master_contact_id")["contact_id"].apply(list).to_dict(),
+                    "case_interactions": df.groupby("master_contact_id")["skill_name"].apply(list).to_dict(),
                     # engagement time
                     "master_contact_id_start_times": df.groupby("master_contact_id")["start_time"].apply(list).to_dict(),
                     # customer contacts
