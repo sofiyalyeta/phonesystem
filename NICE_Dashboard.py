@@ -348,63 +348,63 @@ if phonesystem_file:
 
 
 
-# Initialize empty dict to store results
-dfs = {
-    "monthly_ib_calls": pd.DataFrame(),
-    "monthly_ob_calls": pd.DataFrame(),
-    "monthly_vm_calls": pd.DataFrame(),
-    "monthly_ah_calls": pd.DataFrame(),
-    "monthly_na_calls": pd.DataFrame()
-}
+        # Initialize empty dict to store results
+        dfs = {
+            "monthly_ib_calls": pd.DataFrame(),
+            "monthly_ob_calls": pd.DataFrame(),
+            "monthly_vm_calls": pd.DataFrame(),
+            "monthly_ah_calls": pd.DataFrame(),
+            "monthly_na_calls": pd.DataFrame()
+        }
 
-# Map call category to dataframe name
-call_category_map = {
-    "Inbound": "monthly_ib_calls",
-    "Outbound": "monthly_ob_calls",
-    "Voicemail": "monthly_vm_calls",
-    "After Hours": "monthly_ah_calls",
-    "No Agent": "monthly_na_calls"
-}
+        # Map call category to dataframe name
+        call_category_map = {
+            "Inbound": "monthly_ib_calls",
+            "Outbound": "monthly_ob_calls",
+            "Voicemail": "monthly_vm_calls",
+            "After Hours": "monthly_ah_calls",
+            "No Agent": "monthly_na_calls"
+        }
 
-# Loop through each category
-for category, df_name in call_category_map.items():
-    df_filtered = total_calls[total_calls["call_category"] == category].copy()
+        # Loop through each category
+        for category, df_name in call_category_map.items():
+            df_filtered = total_calls[total_calls["call_category"] == category].copy()
 
-    if df_filtered.empty:
-        dfs[df_name] = pd.DataFrame()
-        continue
+            if df_filtered.empty:
+                dfs[df_name] = pd.DataFrame()
+                continue
 
-    monthly_team_calls = (
-        df_filtered
-        .groupby(["team_name", "Timeframe"])
-        .apply(lambda df: pd.Series({
-            # counts
-            "call_volume": df["master_contact_id"].count(),
-            "total_customer_call_time": df["customer_call_time"].sum(),
-            "prequeue_time": df["PreQueue"].sum(),
-            "inqueue_time": df["InQueue"].sum(),
-            "agent_time": df["Agent_Time"].sum(),
-            "acw_time": df["ACW_Seconds"].sum(),
-            "agent_total_time": df["Agent_Work_Time"].sum(),
-            "abandon_time": df["Abandon_Time"].sum(),
-            # uniques
-            "unique_agents_count": df["agent_name"].nunique(),
-            "unique_skills_count": df["skill_name"].nunique(),
-            "unique_campaigns_count": df["campaign_name"].nunique(),
-            # lists
-            "agent_list": list(df["agent_name"].dropna().unique()),
-            "skill_list": list(df["skill_name"].dropna().unique()),
-            "campaign_list": list(df["campaign_name"].dropna().unique()),
-            # case interactions
-            "case_interactions": df.groupby("master_contact_id")["contact_id"].apply(list).to_dict(),
-            # engagement time
-            "master_contact_id_start_times": df.groupby("master_contact_id")["start_time"].apply(list).to_dict(),
-            # customer contacts
-            "customer_contacts": df.groupby("contact_name").apply(lambda x: list(zip(x["DNIS"], x["start_time"]))).to_dict()
-        }))
-        .reset_index()
-    )
+            monthly_team_calls = (
+                df_filtered
+                .groupby(["team_name", "Timeframe"])
+                .apply(lambda df: pd.Series({
+                    # counts
+                    "call_volume": df["master_contact_id"].count(),
+                    "total_customer_call_time": df["customer_call_time"].sum(),
+                    "prequeue_time": df["PreQueue"].sum(),
+                    "inqueue_time": df["InQueue"].sum(),
+                    "agent_time": df["Agent_Time"].sum(),
+                    "acw_time": df["ACW_Seconds"].sum(),
+                    "agent_total_time": df["Agent_Work_Time"].sum(),
+                    "abandon_time": df["Abandon_Time"].sum(),
+                    # uniques
+                    "unique_agents_count": df["agent_name"].nunique(),
+                    "unique_skills_count": df["skill_name"].nunique(),
+                    "unique_campaigns_count": df["campaign_name"].nunique(),
+                    # lists
+                    "agent_list": list(df["agent_name"].dropna().unique()),
+                    "skill_list": list(df["skill_name"].dropna().unique()),
+                    "campaign_list": list(df["campaign_name"].dropna().unique()),
+                    # case interactions
+                    "case_interactions": df.groupby("master_contact_id")["contact_id"].apply(list).to_dict(),
+                    # engagement time
+                    "master_contact_id_start_times": df.groupby("master_contact_id")["start_time"].apply(list).to_dict(),
+                    # customer contacts
+                    "customer_contacts": df.groupby("contact_name").apply(lambda x: list(zip(x["DNIS"], x["start_time"]))).to_dict()
+                }))
+                .reset_index()
+            )
 
-    dfs[df_name] = monthly_team_calls
+            dfs[df_name] = monthly_team_calls
 
 
