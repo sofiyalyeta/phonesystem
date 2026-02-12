@@ -188,9 +188,6 @@ if phonesystem_file:
             total_calls["start_date"],
             errors="coerce")
 
-
-
-
         total_calls["Timeframe"] = total_calls["Timeframe"].dt.strftime("%b-%Y")
         #total_calls['Abandon_Mins']= total_calls['Abandon_Time'] / 60
         #total_calls['ACW_Mins'] = total_calls['ACW_Seconds'] / 60
@@ -425,43 +422,77 @@ if phonesystem_file:
         # -------------------------------
         # 3. MAIN MONTHLY AGGREGATION
         # -------------------------------
+
+
+
+
+        names = ["monthly_ib_calls", "monthly_ob_calls", "monthly_vm_calls", "monthly_ah_calls", "monthly_na_calls"]
+        dfs = {name: pd.DataFrame() for name in names}
+        monthly_team_calls = (
+            filtered_calls
+                .groupby(["team_name", "Timeframe"])
+                .apply(lambda df: pd.Series({
+
+                    # counts
+                    "call_volume": df["master_contact_id"].count(),
+
+                    # time totals
+                    "total_customer_call_time": df["customer_call_time"].sum(),
+                    "prequeue_time": df["PreQueue"].sum(),
+                    "inqueue_time": df["InQueue"].sum(),
+                    "agent_time": df["Agent_Time"].sum(),
+                    "acw_time": df["ACW_Seconds"].sum(),
+                    "agent_total_time": df["Agent_Work_Time"].sum(),
+                    "abandon_time": df["Abandon_Time"].sum(),
+
+                    # uniques
+                    "unique_agents_count": df["agent_name"].nunique(),
+                    "unique_skills_count": df["skill_name"].nunique(),
+                    "unique_campaigns_count": df["campaign_name"].nunique(),
+
+                    # lists
+                    "agent_list": list(df["agent_name"].dropna().unique()),
+                    "skill_list": list(df["skill_name"].dropna().unique()),
+                    "campaign_list": list(df["campaign_name"].dropna().unique()),
+                    "customer_contacts": list(df["contact_name"].value_counts().items()),
+
+                    # {master_contact_id: [contact_id, contact_id, ...]}
+                    "case_interactions": (
+                        df.groupby("master_contact_id")["contact_id"]
+                        .apply(list)
+                        .to_dict()
+                    ),
+
+                    # engagement_time
+                    # {contact_id: [start_time, start_time, ...]}
+                    "master_contact_id": (
+                        df.groupby("master_contact_id")["start_time"]
+                        .apply(list)
+                        .to_dict()
+                    ),
+
+                    # customer_contact
+                    # {contact_name: [start_time, start_time, ...]}
+                    "customer_contact": (
+                        df.groupby("contact_name")["start_time"]
+                        .apply(list)
+                        .to_dict()
+                    )
+
+                }))
+                .reset_index()
+        )
+
         total_ib_calls = total_calls[total_calls['call_category'] == "Inbound"].copy()
         total_ob_calls = total_calls[total_calls['call_category'] == "Outbound"].copy()
-        total_vm_calls = total_calls[total_calls['call_category'] == "Voice Mail"].copy()
+        total_vm_calls = total_calls[total_calls['call_category'] == "Voicemail"].copy()
         total_ah_calls = total_calls[total_calls['call_category'] == "After Hours"].copy()
         total_na_calls = total_calls[total_calls['call_category'] == "No Agent"].copy()
 
 
 
-        monthly_team_calls = (
-            filtered_calls
-                .groupby(["team_name", "Timeframe"])
-                .agg(
-                    # counts
-                    call_volume=('master_contact_id', 'count'),
 
-                    # time totals (REAL, no reconstruction later)
-                    total_customer_call_time=('customer_call_time', 'sum'),
-                    prequeue_time=('PreQueue', 'sum'),
-                    inqueue_time=('InQueue', 'sum'),
-                    agent_time=('Agent_Time', 'sum'),
-                    acw_time=('ACW_Seconds', 'sum'),
-                    agent_total_time=('Agent_Work_Time', 'sum'),
-                    abandon_time=('Abandon_Time', 'sum'),
 
-                    # uniques
-                    unique_agents_count=('agent_name', 'nunique'),
-                    unique_skills_count=('skill_name', 'nunique'),
-                    unique_campaigns_count=('campaign_name', 'nunique'),
-
-                    # lists
-                    agent_list=('agent_name', lambda x: list(x.dropna().unique())),
-                    skill_list=('skill_name', lambda x: list(x.dropna().unique())),
-                    campaign_list=('campaign_name', lambda x: list(x.dropna().unique())),
-                    Customer_Contacts=('contact_name', lambda x: list(x.value_counts().items()))
-                )
-                .reset_index()
-        )
 
 
 
@@ -722,17 +753,6 @@ if phonesystem_file:
         time_fig_work.update_xaxes(tickformat="%b-%Y")
 
         st.plotly_chart(time_fig_work, use_container_width=True)
-
-        type_summary_df = (
-            monthly_team_calls
-                .apply(lambda col: col.map(lambda x: type(x).__name__).value_counts())
-                .fillna(0)
-                .astype(int)
-                .T
-        )
-
-        st.write(type_summary_df)
-
 
 
 
