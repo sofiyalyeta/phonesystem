@@ -216,7 +216,7 @@ if phonesystem_file:
             format = '%Y-%m-%d %H:%M:%S'
         )# tweak this based on your actual data
  
-
+        time_cols = ['PreQueue', 'InQueue', 'Agent_Time', 'PostQueue']
         total_calls['customer_call_time'] = total_calls[time_cols].sum(axis=1)
 
         # normalize skill name and create categories for the type of call
