@@ -723,12 +723,15 @@ if phonesystem_file:
 
         st.plotly_chart(time_fig_work, use_container_width=True)
 
-        type_summary = {
-            col: monthly_team_calls[col].map(type).value_counts().to_dict()
-            for col in monthly_team_calls.columns
-        }
+        type_summary_df = (
+            monthly_team_calls
+                .apply(lambda col: col.map(lambda x: type(x).__name__).value_counts())
+                .fillna(0)
+                .astype(int)
+                .T
+        )
 
-        st.write(type_summary)
+        st.write(type_summary_df)
 
 
 
