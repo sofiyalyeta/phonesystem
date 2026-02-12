@@ -168,6 +168,7 @@ if phonesystem_file:
         #Load data
         total_calls = pd.read_excel(phonesystem_file)
 
+
         #remove milliseconds after case work column
         total_calls.drop(columns =['ACW_Time'], inplace = True)
         #total_calls['Agent_Time_Mins'] = total_calls['Agent_Time'] / 60
@@ -176,6 +177,10 @@ if phonesystem_file:
 
         total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
         total_calls['team_name'] = total_calls['team_name'].fillna('No Assigned Team')
+
+        total_calls["master_contact_id"] = total_calls["master_contact_id"].astype(str)
+        total_calls["contact_id"] = total_calls["contact_id"].astype(str)
+        total_calls["contact_name"] = total_calls["contact_name"].astype(str)
 
         #filter spam
         excluded_mask = (total_calls["InQueue"] == 0) & (total_calls["PreQueue"] > 0)
@@ -456,29 +461,28 @@ if phonesystem_file:
                     "campaign_list": list(df["campaign_name"].dropna().unique()),
                     "customer_contacts": list(df["contact_name"].value_counts().items())
 
-                    # # {master_contact_id: [contact_id, contact_id, ...]}
-                    # "case_interactions": (
-                    #     df.groupby("master_contact_id")["contact_id"]
-                    #     .apply(list)
-                    #     .to_dict()
-                    # ),
+                    # {master_contact_id: [contact_id, contact_id, ...]}
+                    "case_interactions": (
+                        df.groupby("master_contact_id")["contact_id"]
+                        .apply(list)
+                        .to_dict()
+                    ),
 
-                    # # engagement_time
-                    # # {contact_id: [start_time, start_time, ...]}
-                    # "master_contact_id": (
-                    #     df.groupby("master_contact_id")["start_time"]
-                    #     .apply(list)
-                    #     .to_dict()
-                    # ),
+                    # engagement_time
+                    # {contact_id: [start_time, start_time, ...]}
+                    "master_contact_id": (
+                        df.groupby("master_contact_id")["start_time"]
+                        .apply(list)
+                        .to_dict()
+                    ),
 
-                    # # customer_contact
-                    # # {contact_name: [start_time, start_time, ...]}
-                    # "customer_contact": (
-                    #     df.groupby("contact_name")["start_time"]
-                    #     .apply(list)
-                    #     .to_dict()
-                    # )
-
+                    # customer_contact
+                    # {contact_name: [(DNIS, start_time), (DNIS, start_time), ...]}
+                    customer_contact = (
+                        df.groupby("contact_name")
+                        .apply(lambda x: list(zip(x["DNIS"], x["start_time"])))
+                        .to_dict()
+                    )
                 }))
                 .reset_index()
         )
@@ -519,7 +523,7 @@ if phonesystem_file:
         # -------------------------------
         display_df = monthly_team_calls.copy()
 
-        list_cols = ['agent_list', 'skill_list', 'campaign_list', 'Customer_Contacts']
+        list_cols = ['agent_list', 'skill_list', 'campaign_list', 'customer_contacts']
         for col in list_cols:
             display_df[col] = display_df[col].apply(
                 lambda x: ", ".join(map(str, x)) if isinstance(x, list) else ""
@@ -613,12 +617,12 @@ if phonesystem_file:
                 .groupby(['team_name', 'call_category'], as_index=False)
                 .agg(
                     total_calls=('master_contact_id', 'count'),
-                    agent_total_time_mins=('Agent_Work_Time', 'sum')  # sum first
+                    agent_total_time=('agent_total_time', 'sum')  # sum first
                 )
         )
 
         # Convert to minutes AFTER aggregation
-        time_by_call_type['agent_total_time_mins'] = time_by_call_type['agent_total_time_mins'] / 60
+        time_by_call_type['agent_total_time_mins'] = time_by_call_type['agent_total_time'] / 60
 
         time_pivot = time_by_call_type.pivot(
             index='team_name',
