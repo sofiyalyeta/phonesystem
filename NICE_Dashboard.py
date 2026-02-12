@@ -437,7 +437,6 @@ if phonesystem_file:
             filtered_calls
                 .groupby(["team_name", "Timeframe"])
                 .apply(lambda df: pd.Series({
-
                     # counts
                     "call_volume": df["master_contact_id"].count(),
 
@@ -478,7 +477,7 @@ if phonesystem_file:
 
                     # customer_contact
                     # {contact_name: [(DNIS, start_time), (DNIS, start_time), ...]}
-                    customer_contact = (
+                    "customer_contacts" : (
                         df.groupby("contact_name")
                         .apply(lambda x: list(zip(x["DNIS"], x["start_time"])))
                         .to_dict()
