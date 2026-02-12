@@ -463,9 +463,8 @@ if phonesystem_file:
                 .reset_index()
         )
 
-        for col in monthly_team_calls.columns:
-            st.write(f"\nColumn: {col}")
-            st.write(monthly_team_calls[col].map(lambda x: type(x).__name__).value_counts())
+
+
         # -------------------------------
         # 4. CALL TYPE COUNTS (NO DOUBLE COUNT)
         # -------------------------------
@@ -724,7 +723,12 @@ if phonesystem_file:
 
         st.plotly_chart(time_fig_work, use_container_width=True)
 
+        type_summary = {
+            col: monthly_team_calls[col].map(type).value_counts().to_dict()
+            for col in monthly_team_calls.columns
+        }
 
+        st.json(type_summary)
 
 
 
@@ -920,4 +924,3 @@ if phonesystem_file:
 #     **{col: ('{}'.format(col), 'sum') for col in call_cols}
 # )
 # agg
-
