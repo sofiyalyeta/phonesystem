@@ -234,11 +234,11 @@ if phonesystem_file:
             "Voicemail": "monthly_vm_calls",
             "After Hours": "monthly_ah_calls",
             "No Agent": "monthly_na_calls",
-            "All Calls": "monthly_total_calls"
+            "All": "monthly_total_calls"
         }
 
         for category, df_name in call_category_map.items():
-            if category != "All Calls":
+            if category != "All":
                 df_filtered = total_calls[
                     total_calls["call_category"] == category
                 ].copy()
@@ -272,6 +272,7 @@ if phonesystem_file:
                     unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
                 )
                 .reset_index()
+                monthly_team_calls["Timeframe"] = pd.to_datetime(monthly_team_calls["Timeframe"])
                 .sort_values(["Timeframe", "team_name"])
             )
             
