@@ -172,6 +172,11 @@ if phonesystem_file:
             'Default Team': 'Other'
         }
 
+        total_calls["department"] = (
+            total_calls["team_name"]
+            .map(team_to_dept)
+            .fillna("Other")
+        )
         total_calls["Timeframe"] = (
             total_calls["start_date"].dt.month.astype(str)
             + "-"
@@ -299,5 +304,6 @@ if phonesystem_file:
 
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
+
 
 
