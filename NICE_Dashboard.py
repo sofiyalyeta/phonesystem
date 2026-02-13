@@ -368,7 +368,6 @@ if phonesystem_file:
             "No Agent": "monthly_na_calls"
         }
 
-        # Loop through each category
         for category, df_name in call_category_map.items():
             df_filtered = total_calls[total_calls["call_category"] == category].copy()
 
@@ -397,12 +396,6 @@ if phonesystem_file:
                     "agent_list": list(df["agent_name"].dropna().unique()),
                     "skill_list": list(df["skill_name"].dropna().unique()),
                     "campaign_list": list(df["campaign_name"].dropna().unique()),
-                    # case interactions
-                    "case_interactions": df.groupby("master_contact_id")["skill_name"].apply(list).to_dict(),
-                    # engagement time
-                    "master_contact_id_start_times": df.groupby("master_contact_id")["start_time"].apply(list).to_dict(),
-                    # customer contacts
-                    "customer_contacts": df.groupby("contact_name").apply(lambda x: list(zip(x["DNIS"], x["start_time"]))).to_dict()
                 }))
                 .reset_index()
             )
@@ -416,3 +409,24 @@ if phonesystem_file:
                 st.text("No data available")
             else:
                 st.dataframe(dfs[df_name])
+
+
+        master_contact_df = (
+            df_filtered
+            .groupby("master_contact_id")
+            .agg({
+                "skill_name": lambda x: list(x.dropna().unique()),      # case_interactions / contacted_skills
+                "contact_id": lambda x: list(x.dropna().unique()),      # contact_ids
+                "start_time": lambda x: list(x),                        # contact_times
+                "Timeframe": "first"                                    # keep timeframe value
+            })
+            .reset_index()
+            .rename(columns={
+                "skill_name": "contacted_skills",
+                "contact_id": "contact_ids",
+                "start_time": "contact_times"
+            })
+        )
+
+        # If you also want case_interactions explicitly:
+        master_contact_df["case_interactions"] = master_contact_df["contacted_skills"]
