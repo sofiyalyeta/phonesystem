@@ -233,14 +233,17 @@ if phonesystem_file:
             "Outbound": "monthly_ob_calls",
             "Voicemail": "monthly_vm_calls",
             "After Hours": "monthly_ah_calls",
-            "No Agent": "monthly_na_calls"
+            "No Agent": "monthly_na_calls",
+            "All Calls": "monthly_total_calls"
         }
 
         for category, df_name in call_category_map.items():
-
-            df_filtered = total_calls[
-                total_calls["call_category"] == category
-            ].copy()
+            if category != "All Calls":
+                df_filtered = total_calls[
+                    total_calls["call_category"] == category
+                ].copy()
+            else:
+                df_filtered = total_calls
 
             if df_filtered.empty:
                 dfs[df_name] = pd.DataFrame()
@@ -269,6 +272,7 @@ if phonesystem_file:
                     unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
                 )
                 .reset_index()
+                .sort_values(["Timeframe", "team_name"])
             )
             
             dfs[df_name] = monthly_team_calls
@@ -310,7 +314,6 @@ if phonesystem_file:
 
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
-
 
 
 
