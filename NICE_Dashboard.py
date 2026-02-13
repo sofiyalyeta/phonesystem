@@ -222,26 +222,38 @@ if phonesystem_file:
         # =========================
         # Monthly Aggregation by Category
         # =========================
-        dfs = {}
-        call_category_map = {
-            "Inbound": "monthly_ib_calls",
-            "Outbound": "monthly_ob_calls",
-            "Voicemail": "monthly_vm_calls",
-            "After Hours": "monthly_ah_calls",
-            "No Agent": "monthly_na_calls",
-            "All": "monthly_total_calls"
-        }
 
-        for category, df_name in call_category_map.items():
-            if category != "All":
+        dfs = {}
+
+        call_type_options = [
+            "All Calls",
+            "All Calls Business Hours",
+            "Inbound",
+            "Inbound Business Hours",
+            "Voicemail",
+            "Voicemail Business Hours",
+            "After Hours",
+            "After Hours Business Hours",
+            "No Agent",
+            "No Agent Business Hours"
+        ]
+
+        for option in call_type_options:
+            if option == "All Calls":
+                df_filtered = total_calls.copy()
+            elif option == "All Calls Business Hours":
+                df_filtered = total_calls[total_calls["Business_Hours"] == 1].copy()
+            elif option.endswith("Business Hours"):
+                base_category = option.replace(" Business Hours", "")
                 df_filtered = total_calls[
-                    total_calls["call_category"] == category
+                    (total_calls["call_category"] == base_category) &
+                    (total_calls["Business_Hours"] == 1)
                 ].copy()
             else:
-                df_filtered = total_calls
+                df_filtered = total_calls[total_calls["call_category"] == option].copy()
 
             if df_filtered.empty:
-                dfs[df_name] = pd.DataFrame()
+                dfs[option] = pd.DataFrame()
                 continue
 
             monthly_team_calls = (
@@ -261,33 +273,28 @@ if phonesystem_file:
                     unique_skills_count=("skill_name", "nunique"),
                     unique_campaigns_count=("campaign_name", "nunique"),
 
-                    # Lists of unique values
                     unique_agents_list=("agent_name", lambda x: list(x.unique())),
                     unique_skills_list=("skill_name", lambda x: list(x.unique())),
                     unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
                 )
                 .reset_index()
+                .sort_values(["Timeframe", "team_name"])
             )
 
-            # Sort by Timeframe correctly
-            monthly_team_calls = monthly_team_calls.sort_values(
-                ["Timeframe", "team_name"]
-            )
-
-            dfs[df_name] = monthly_team_calls
+            dfs[option] = monthly_team_calls
 
         # =========================
-        # Display Results
+        # Display All Monthly DataFrames
         # =========================
-        for category, df_name in call_category_map.items():
-            st.subheader(f"{category} Calls")
-            if dfs[df_name].empty:
+        for option in call_type_options:
+            st.subheader(option)
+            if dfs[option].empty:
                 st.write("No data available.")
             else:
-                display_df = dfs[df_name].copy()
-                # Format for display as M-YYYY
+                display_df = dfs[option].copy()
                 display_df["Timeframe"] = display_df["Timeframe"].dt.strftime("%-m-%Y")
                 st.dataframe(display_df)
+
 
         # =========================
         # Master Contact View (with time columns)
