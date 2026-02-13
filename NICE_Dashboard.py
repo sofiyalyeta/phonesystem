@@ -289,3 +289,48 @@ if phonesystem_file:
                 display_df["Timeframe"] = display_df["Timeframe"].dt.strftime("%-m-%Y")
                 st.dataframe(display_df)
 
+        # =========================
+        # Master Contact View (with time columns)
+        # =========================
+        master_contact_df = (
+            total_calls
+            .groupby("master_contact_id")
+            .agg({
+                "skill_name": lambda x: list(x.dropna().unique()),
+                "contact_id": lambda x: list(x.dropna().unique()),
+                "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
+                "Timeframe": "first",
+                "team_name": lambda x: list(x),
+                "PreQueue": lambda x: list(x),                  # prequeue times
+                "InQueue": lambda x: list(x),                   # inqueue times
+                "Agent_Time": lambda x: list(x),                # agent times
+                "ACW_Seconds": lambda x: list(x),               # after casework times
+                "Agent_Work_Time": lambda x: list(x),           # total agent times
+                "customer_call_time": lambda x: list(x),        # total customer call times
+            })
+            .reset_index()
+            .rename(columns={
+                "skill_name": "contacted_skills",
+                "contact_id": "contact_ids",
+                "start_time": "contact_times",
+                "team_name": "contacted_teams",
+                "PreQueue": "prequeue_time",
+                "InQueue": "inqueue_time",
+                "Agent_Time": "agent_time",
+                "ACW_Seconds": "aftercasework_time",
+                "Agent_Work_Time": "agent_total_time",
+                "customer_call_time": "customer_call_total_time"
+            })
+        )
+
+        # Format Timeframe like monthly dataframe: "7-2024"
+        master_contact_df["Timeframe"] = pd.to_datetime(master_contact_df["Timeframe"], errors='coerce')
+        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.to_period("M").dt.to_timestamp()
+        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
+
+        # Sort by Timeframe
+        master_contact_df = master_contact_df.sort_values("Timeframe")
+
+        st.subheader("Master Contact View")
+        st.dataframe(master_contact_df)
+
