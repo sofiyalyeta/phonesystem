@@ -273,28 +273,38 @@ if phonesystem_file:
         # =========================
         st.subheader("Export All Data to Excel")
 
-        if st.button("Download Excel Workbook"):
 
-            output = io.BytesIO()
 
-            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        st.subheader("Export Test")
 
-                for option, df in dfs.items():
-                    sheet_name = option[:31]
-                    if df.empty:
-                        pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
-                    else:
-                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+        st.download_button(
+            label="Test Download",
+            data=b"Hello world",
+            file_name="test.txt"
+        )
 
-                master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
-                total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
-                spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+        # if st.button("Download Excel Workbook"):
 
-            output.seek(0)
+        #     output = io.BytesIO()
 
-            st.download_button(
-                label="Download Complete Excel Workbook",
-                data=output,
-                file_name="Phone_System_Analysis.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        #     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+
+        #         for option, df in dfs.items():
+        #             sheet_name = option[:31]
+        #             if df.empty:
+        #                 pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
+        #             else:
+        #                 df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        #         master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
+        #         total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
+        #         spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+
+        #     output.seek(0)
+
+        #     st.download_button(
+        #         label="Download Complete Excel Workbook",
+        #         data=output,
+        #         file_name="Phone_System_Analysis.xlsx",
+        #         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #     )
