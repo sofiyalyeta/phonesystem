@@ -313,5 +313,13 @@ if phonesystem_file:
             })
         )
 
+        # Format Timeframe like monthly dataframe: "7-2024"
+        master_contact_df["Timeframe"] = pd.to_datetime(master_contact_df["Timeframe"], errors='coerce')
+        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.to_period("M").dt.to_timestamp()
+        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
+
+        # Sort by Timeframe
+        master_contact_df = master_contact_df.sort_values("Timeframe")
+
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
