@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import io
+
 
 st.set_page_config(page_title="Phone System Data Analysis", layout="wide")
 
@@ -62,16 +64,10 @@ if phonesystem_file:
         # Load Data
         # =========================
         total_calls = pd.read_excel(phonesystem_file)
-
-        # Safe column drop
         total_calls.drop(columns=['ACW_Time'], inplace=True, errors='ignore')
 
-        # Ensure datetime format
-        total_calls["start_date"] = pd.to_datetime(
-            total_calls["start_date"], errors="coerce"
-        )
+        total_calls["start_date"] = pd.to_datetime(total_calls["start_date"], errors="coerce")
 
-        # Combine start_date + start_time safely
         total_calls["start_time"] = pd.to_datetime(
             total_calls["start_date"].astype(str) + " " +
             total_calls["start_time"].astype(str),
@@ -80,11 +76,9 @@ if phonesystem_file:
 
         total_calls.sort_values("start_time", inplace=True)
 
-        # Fill missing values
         total_calls['Total_Time'] = total_calls['Total_Time'].fillna(0)
         total_calls['team_name'] = total_calls['team_name'].fillna('No Assigned Team')
 
-        # Convert IDs to string
         for col in ["master_contact_id", "contact_id", "contact_name"]:
             total_calls[col] = total_calls[col].astype(str)
 
@@ -92,27 +86,26 @@ if phonesystem_file:
         # Spam Filter
         # =========================
         excluded_mask = (total_calls["InQueue"] == 0) & (total_calls["PreQueue"] > 0)
-        excluded_calls = excluded_mask.sum()
-        total_calls = total_calls.loc[~excluded_mask]
+        spam_calls_df = total_calls.loc[excluded_mask].copy()
+        excluded_calls = len(spam_calls_df)
+
+        total_calls = total_calls.loc[~excluded_mask].copy()
 
         st.info(f"{excluded_calls} calls classified as spam and removed.")
 
         # =========================
-        # Timeframe (Corrected Version)
+        # Timeframe
         # =========================
         total_calls["Timeframe"] = total_calls["start_date"].dt.to_period("M").dt.to_timestamp()
 
         # =========================
-        # Agent Work Time
+        # Time Calculations
         # =========================
         total_calls['Agent_Work_Time'] = (
             total_calls['ACW_Seconds'].fillna(0) +
             total_calls['Agent_Time'].fillna(0)
         )
 
-        # =========================
-        # Customer Call Time
-        # =========================
         time_cols = ['PreQueue', 'InQueue', 'Agent_Time', 'PostQueue']
         total_calls['customer_call_time'] = total_calls[time_cols].sum(axis=1)
 
@@ -150,33 +143,24 @@ if phonesystem_file:
         team_to_dept = {
             'Field Services': 'Deployment',
             'Comissioning': 'Deployment',
-
             'SB-AM': 'Sales',
             'SDR Team': 'Sales',
             'Account Manager': 'Sales',
             'Inside Sales': 'Sales',
-
             'Billing': 'Billing and Collections',
             'Collections': 'Billing and Collections',
             'Business Support': 'Billing and Collections',
-
             'MCF Support': 'Customer Support',
             'Customer Support ATL': 'Customer Support',
             'Solutions': 'Customer Support',
             'Level 2 Support': 'Customer Support',
-
             'Admin': 'Technical Team',
             'Test': 'Technical Team',
-
             'No Assigned Team': 'Other',
             'Default Team': 'Other'
         }
 
-        total_calls["department"] = (
-            total_calls["team_name"]
-            .map(team_to_dept)
-            .fillna("Other")
-        )
+        total_calls["department"] = total_calls["team_name"].map(team_to_dept).fillna("Other")
 
         # =========================
         # Business Hours
@@ -196,10 +180,7 @@ if phonesystem_file:
             if pd.isna(call_time):
                 return 0
 
-            if dep in business_hours:
-                start_h, start_m, end_h, end_m = business_hours[dep]
-            else:
-                start_h, start_m, end_h, end_m = (9, 0, 17, 0)
+            start_h, start_m, end_h, end_m = business_hours.get(dep, (9, 0, 17, 0))
 
             start_dt = call_time.replace(hour=start_h, minute=start_m, second=0)
             end_dt = call_time.replace(hour=end_h, minute=end_m, second=0)
@@ -209,20 +190,8 @@ if phonesystem_file:
         total_calls['Business_Hours'] = total_calls.apply(is_business_hours, axis=1)
 
         # =========================
-        # Toggle Filter
+        # Monthly Aggregation
         # =========================
-        exclude_outside_hours = st.toggle(
-            "Exclude calls outside business hours?",
-            value=False
-        )
-
-        if exclude_outside_hours:
-            total_calls = total_calls[total_calls['Business_Hours'] == 1]
-
-        # =========================
-        # Monthly Aggregation by Category
-        # =========================
-
         dfs = {}
 
         call_type_options = [
@@ -239,18 +208,19 @@ if phonesystem_file:
         ]
 
         for option in call_type_options:
+
             if option == "All Calls":
                 df_filtered = total_calls.copy()
             elif option == "All Calls Business Hours":
-                df_filtered = total_calls[total_calls["Business_Hours"] == 1].copy()
+                df_filtered = total_calls[total_calls["Business_Hours"] == 1]
             elif option.endswith("Business Hours"):
                 base_category = option.replace(" Business Hours", "")
                 df_filtered = total_calls[
                     (total_calls["call_category"] == base_category) &
                     (total_calls["Business_Hours"] == 1)
-                ].copy()
+                ]
             else:
-                df_filtered = total_calls[total_calls["call_category"] == option].copy()
+                df_filtered = total_calls[total_calls["call_category"] == option]
 
             if df_filtered.empty:
                 dfs[option] = pd.DataFrame()
@@ -268,14 +238,9 @@ if phonesystem_file:
                     acw_time=("ACW_Seconds", "sum"),
                     agent_total_time=("Agent_Work_Time", "sum"),
                     abandon_time=("Abandon_Time", "sum"),
-
                     unique_agents_count=("agent_name", "nunique"),
                     unique_skills_count=("skill_name", "nunique"),
                     unique_campaigns_count=("campaign_name", "nunique"),
-
-                    unique_agents_list=("agent_name", lambda x: list(x.unique())),
-                    unique_skills_list=("skill_name", lambda x: list(x.unique())),
-                    unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
                 )
                 .reset_index()
                 .sort_values(["Timeframe", "team_name"])
@@ -284,20 +249,7 @@ if phonesystem_file:
             dfs[option] = monthly_team_calls
 
         # =========================
-        # Display All Monthly DataFrames
-        # =========================
-        for option in call_type_options:
-            st.subheader(option)
-            if dfs[option].empty:
-                st.write("No data available.")
-            else:
-                display_df = dfs[option].copy()
-                display_df["Timeframe"] = display_df["Timeframe"].dt.strftime("%-m-%Y")
-                st.dataframe(display_df)
-
-
-        # =========================
-        # Master Contact View (with time columns)
+        # Master Contact View
         # =========================
         master_contact_df = (
             total_calls
@@ -308,36 +260,41 @@ if phonesystem_file:
                 "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
                 "Timeframe": "first",
                 "team_name": lambda x: list(x),
-                "PreQueue": lambda x: list(x),                  # prequeue times
-                "InQueue": lambda x: list(x),                   # inqueue times
-                "Agent_Time": lambda x: list(x),                # agent times
-                "ACW_Seconds": lambda x: list(x),               # after casework times
-                "Agent_Work_Time": lambda x: list(x),           # total agent times
-                "customer_call_time": lambda x: list(x),        # total customer call times
+                "customer_call_time": lambda x: list(x),
             })
             .reset_index()
-            .rename(columns={
-                "skill_name": "contacted_skills",
-                "contact_id": "contact_ids",
-                "start_time": "contact_times",
-                "team_name": "contacted_teams",
-                "PreQueue": "prequeue_time",
-                "InQueue": "inqueue_time",
-                "Agent_Time": "agent_time",
-                "ACW_Seconds": "aftercasework_time",
-                "Agent_Work_Time": "agent_total_time",
-                "customer_call_time": "customer_call_total_time"
-            })
         )
 
-        # Format Timeframe like monthly dataframe: "7-2024"
         master_contact_df["Timeframe"] = pd.to_datetime(master_contact_df["Timeframe"], errors='coerce')
-        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.to_period("M").dt.to_timestamp()
         master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
 
-        # Sort by Timeframe
-        master_contact_df = master_contact_df.sort_values("Timeframe")
+        # =========================
+        # Excel Export
+        # =========================
+        st.subheader("Export All Data to Excel")
 
-        st.subheader("Master Contact View")
-        st.dataframe(master_contact_df)
+        if st.button("Download Excel Workbook"):
 
+            output = io.BytesIO()
+
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+
+                for option, df in dfs.items():
+                    sheet_name = option[:31]
+                    if df.empty:
+                        pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
+                    else:
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
+                total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
+                spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+
+            output.seek(0)
+
+            st.download_button(
+                label="Download Complete Excel Workbook",
+                data=output,
+                file_name="Phone_System_Analysis.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
