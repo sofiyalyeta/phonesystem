@@ -277,7 +277,9 @@ if phonesystem_file:
             .agg({
                 "skill_name": lambda x: list(x.dropna().unique()),
                 "contact_id": lambda x: list(x.dropna().unique()),
-                "start_time": lambda x: list(x),
+                "start_time": lambda x: list(
+                    x.dt.strftime("%Y-%m-%d %H:%M:%S")
+                ),
                 "Timeframe": "first",
                 "team_name": lambda x: list(x),
             })
@@ -290,5 +292,7 @@ if phonesystem_file:
             })
         )
 
+
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
+
