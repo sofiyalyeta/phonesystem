@@ -98,9 +98,9 @@ if phonesystem_file:
         st.info(f"{excluded_calls} calls classified as spam and removed.")
 
         # =========================
-        # Timeframe (Clean Version)
+        # Timeframe (Corrected Version)
         # =========================
-        total_calls["Timeframe"] = total_calls["start_date"].dt.to_period("M")
+        total_calls["Timeframe"] = total_calls["start_date"].dt.to_period("M").dt.to_timestamp()
 
         # =========================
         # Agent Work Time
@@ -177,11 +177,6 @@ if phonesystem_file:
             .map(team_to_dept)
             .fillna("Other")
         )
-        total_calls["Timeframe"] = (
-            total_calls["start_date"].dt.month.astype(str)
-            + "-"
-            + total_calls["start_date"].dt.year.astype(str)
-        )
 
         # =========================
         # Business Hours
@@ -248,7 +243,7 @@ if phonesystem_file:
             if df_filtered.empty:
                 dfs[df_name] = pd.DataFrame()
                 continue
-    
+
             monthly_team_calls = (
                 df_filtered
                 .groupby(["team_name", "Timeframe"])
@@ -261,21 +256,24 @@ if phonesystem_file:
                     acw_time=("ACW_Seconds", "sum"),
                     agent_total_time=("Agent_Work_Time", "sum"),
                     abandon_time=("Abandon_Time", "sum"),
-            
+
                     unique_agents_count=("agent_name", "nunique"),
                     unique_skills_count=("skill_name", "nunique"),
                     unique_campaigns_count=("campaign_name", "nunique"),
-            
-                    #Lists of unique values
+
+                    # Lists of unique values
                     unique_agents_list=("agent_name", lambda x: list(x.unique())),
                     unique_skills_list=("skill_name", lambda x: list(x.unique())),
                     unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
                 )
                 .reset_index()
-                monthly_team_calls["Timeframe"] = pd.to_datetime(monthly_team_calls["Timeframe"])
-                .sort_values(["Timeframe", "team_name"])
             )
-            
+
+            # Sort by Timeframe correctly
+            monthly_team_calls = monthly_team_calls.sort_values(
+                ["Timeframe", "team_name"]
+            )
+
             dfs[df_name] = monthly_team_calls
 
         # =========================
@@ -286,7 +284,10 @@ if phonesystem_file:
             if dfs[df_name].empty:
                 st.write("No data available.")
             else:
-                st.dataframe(dfs[df_name])
+                display_df = dfs[df_name].copy()
+                # Format for display as M-YYYY
+                display_df["Timeframe"] = display_df["Timeframe"].dt.strftime("%-m-%Y")
+                st.dataframe(display_df)
 
         # =========================
         # Master Contact View
@@ -312,10 +313,5 @@ if phonesystem_file:
             })
         )
 
-
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
-
-
-
-
