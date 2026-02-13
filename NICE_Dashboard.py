@@ -245,33 +245,33 @@ if phonesystem_file:
             if df_filtered.empty:
                 dfs[df_name] = pd.DataFrame()
                 continue
-
-        monthly_team_calls = (
-            df_filtered
-            .groupby(["team_name", "Timeframe"])
-            .agg(
-                call_volume=("master_contact_id", "count"),
-                total_customer_call_time=("customer_call_time", "sum"),
-                prequeue_time=("PreQueue", "sum"),
-                inqueue_time=("InQueue", "sum"),
-                agent_time=("Agent_Time", "sum"),
-                acw_time=("ACW_Seconds", "sum"),
-                agent_total_time=("Agent_Work_Time", "sum"),
-                abandon_time=("Abandon_Time", "sum"),
-        
-                unique_agents_count=("agent_name", "nunique"),
-                unique_skills_count=("skill_name", "nunique"),
-                unique_campaigns_count=("campaign_name", "nunique"),
-        
-                #Lists of unique values
-                unique_agents_list=("agent_name", lambda x: list(x.unique())),
-                unique_skills_list=("skill_name", lambda x: list(x.unique())),
-                unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
+    
+            monthly_team_calls = (
+                df_filtered
+                .groupby(["team_name", "Timeframe"])
+                .agg(
+                    call_volume=("master_contact_id", "count"),
+                    total_customer_call_time=("customer_call_time", "sum"),
+                    prequeue_time=("PreQueue", "sum"),
+                    inqueue_time=("InQueue", "sum"),
+                    agent_time=("Agent_Time", "sum"),
+                    acw_time=("ACW_Seconds", "sum"),
+                    agent_total_time=("Agent_Work_Time", "sum"),
+                    abandon_time=("Abandon_Time", "sum"),
+            
+                    unique_agents_count=("agent_name", "nunique"),
+                    unique_skills_count=("skill_name", "nunique"),
+                    unique_campaigns_count=("campaign_name", "nunique"),
+            
+                    #Lists of unique values
+                    unique_agents_list=("agent_name", lambda x: list(x.unique())),
+                    unique_skills_list=("skill_name", lambda x: list(x.unique())),
+                    unique_campaigns_list=("campaign_name", lambda x: list(x.unique())),
+                )
+                .reset_index()
             )
-            .reset_index()
-        )
-        
-        dfs[df_name] = monthly_team_calls
+            
+            dfs[df_name] = monthly_team_calls
 
         # =========================
         # Display Results
@@ -310,6 +310,7 @@ if phonesystem_file:
 
         st.subheader("Master Contact View")
         st.dataframe(master_contact_df)
+
 
 
 
