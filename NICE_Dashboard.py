@@ -412,19 +412,21 @@ if phonesystem_file:
 
 
         master_contact_df = (
-            df_filtered
+            total_calls
             .groupby("master_contact_id")
             .agg({
                 "skill_name": lambda x: list(x.dropna().unique()),      # case_interactions / contacted_skills
                 "contact_id": lambda x: list(x.dropna().unique()),      # contact_ids
                 "start_time": lambda x: list(x),                        # contact_times
-                "Timeframe": "first"                                    # keep timeframe value
+                "Timeframe": "first",                                    # keep timeframe value
+                "team_name": lambda x: list(x), 
             })
             .reset_index()
             .rename(columns={
                 "skill_name": "contacted_skills",
                 "contact_id": "contact_ids",
-                "start_time": "contact_times"
+                "start_time": "contact_times",
+                "team_name": "contacted_teams",
             })
         )
 
