@@ -428,5 +428,4 @@ if phonesystem_file:
             })
         )
 
-        # If you also want case_interactions explicitly:
-        master_contact_df["case_interactions"] = master_contact_df["contacted_skills"]
+        st.dataframe(master_contact_df)
