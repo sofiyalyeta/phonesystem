@@ -394,36 +394,34 @@ if phonesystem_file is not None and process_button:
         st.session_state.spam_calls_df = spam_calls_df
 
 
-# =========================
-# Excel Download Section
-# =========================
-st.subheader("Export All Data to Excel")
+        # =========================
+        # Excel Download Section
+        # =========================
+        st.subheader("Export All Data to Excel")
 
-if not st.session_state.dfs:
-    st.warning("⚠️ No data has been processed yet. Please upload a file first.")
-if st.session_state.dfs:
-    output = io.BytesIO()
+        output = io.BytesIO()
 
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
-        for option, df in st.session_state.dfs.items():
-            sheet_name = option[:31]
-            if df.empty:
-                pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
-            else:
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
-        st.session_state.master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
-        st.session_state.total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
-        st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+            for option, df in st.session_state.dfs.items():
+                sheet_name = option[:31]
+                if df.empty:
+                    pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    output.seek(0)
+            st.session_state.master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
+            st.session_state.total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
+            st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
 
-    st.download_button(
-        label="Download Complete Excel Workbook",
-        data=output,
-        file_name="Phone_System_Analysis.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        output.seek(0)
+
+        st.download_button(
+            label="Download Complete Excel Workbook",
+            data=output,
+            file_name="Phone_System_Analysis.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 
