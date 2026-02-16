@@ -51,6 +51,73 @@ st.markdown(
 )
 
 
+
+st.header("Data Legend")
+
+# Contact & Identification
+st.subheader("Contact & Identification")
+st.text("""
+contact_id: Unique identifier for the individual interaction
+master_contact_id: Identifier linking related interactions (transfers, callbacks)
+media_name: Interaction channel (Voice, Chat, Email, SMS)
+contact_name: Friendly name or label for the interaction
+ANI: Caller phone number (Automatic Number Identification)
+DNIS: Dialed phone number (Dialed Number Identification Service)
+""")
+
+# Skill & Routing
+st.subheader("Skill & Routing")
+st.text("""
+skill_no: Numeric ID of the routing skill
+skill_name: Name of the routing skill
+campaign_no: Campaign identifier
+campaign_name: Campaign name
+""")
+
+# Agent & Team
+st.subheader("Agent & Team")
+st.text("""
+agent_no: Agent system ID
+agent_name: Agent display name
+team_no: Team identifier
+team_name: Team name
+""")
+
+# Service Level
+st.subheader("Service Level")
+st.text("""
+SLA: Service level indicator (met or not met)
+""")
+
+# Date & Time
+st.subheader("Date & Time")
+st.text("""
+start_date: Date the interaction started
+start_time: Time the interaction started
+""")
+
+# Queue & Handling Time
+st.subheader("Queue & Handling Time")
+st.text("""
+PreQueue: Time spent in IVR or routing before entering queue
+InQueue: Time spent waiting in queue
+Agent_Time: Time agent actively handled the interaction
+PostQueue: Time after leaving queue before wrap-up
+Total_Time: Total duration of the interaction
+Abandon_Time: Time elapsed before customer abandoned
+abandon: Abandon flag (1 = abandoned, 0 = handled)
+""")
+
+# After Call Work
+st.subheader("After Call Work (ACW)")
+st.text("""
+ACW_Seconds: After Call Work duration in seconds
+ACW_Time: After Call Work duration formatted as time
+""")
+
+
+
+
 # =========================
 # File Upload
 # =========================
@@ -230,23 +297,57 @@ if st.button("Process New Data"):
 
                 monthly_team_calls = (
                     df_filtered
-                    .groupby(["team_name", "Timeframe"])
+                    .groupby(["team_name", "department", "Timeframe"])
                     .agg(
                         call_volume=("master_contact_id", "count"),
+
+                        # Time Sums
                         total_customer_call_time=("customer_call_time", "sum"),
                         prequeue_time=("PreQueue", "sum"),
                         inqueue_time=("InQueue", "sum"),
                         agent_time=("Agent_Time", "sum"),
+                        postqueue_time=("PostQueue", "sum"),
                         acw_time=("ACW_Seconds", "sum"),
                         agent_total_time=("Agent_Work_Time", "sum"),
                         abandon_time=("Abandon_Time", "sum"),
+
+                        # SLA Counts
+                        sla_missed=("SLA", lambda x: (x == -1).sum()),
+                        sla_met=("SLA", lambda x: (x == 0).sum()),
+                        sla_exceeded=("SLA", lambda x: (x == 1).sum()),
+
+                        # Business Hours Counts
+                        business_hours_calls=("Business_Hours", lambda x: (x == 1).sum()),
+                        after_hours_calls=("Business_Hours", lambda x: (x == 0).sum()),
+
+                        # Unique Counts
                         unique_agents_count=("agent_name", "nunique"),
                         unique_skills_count=("skill_name", "nunique"),
                         unique_campaigns_count=("campaign_name", "nunique"),
+
+                        # Lists
+                        agents_list=("agent_name", lambda x: list(x.dropna().unique())),
+                        skills_list=("skill_name", lambda x: list(x.dropna().unique())),
+                        campaigns_list=("campaign_name", lambda x: list(x.dropna().unique())),
+                        ani_list=("ANI", lambda x: list(x.dropna().unique())),
+
+                        # Call Category Counts
+                        inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
+                        outbound_calls=("call_category", lambda x: (x == "Outbound").sum()),
+                        voicemail_calls=("call_category", lambda x: (x == "Voicemail").sum()),
+                        afterhours_calls=("call_category", lambda x: (x == "After Hours").sum()),
+                        noagent_calls=("call_category", lambda x: (x == "No Agent").sum()),
+                        other_calls=("call_category", lambda x: (x == "Other").sum()),
                     )
                     .reset_index()
                     .sort_values(["Timeframe", "team_name"])
                 )
+
+                monthly_team_calls["Timeframe"] = pd.to_datetime(
+                    monthly_team_calls["Timeframe"], errors="coerce"
+                )
+
+                monthly_team_calls["Timeframe"] = monthly_team_calls["Timeframe"].dt.strftime("%-m-%Y")
 
                 dfs[option] = monthly_team_calls
 
@@ -301,3 +402,4 @@ if st.button("Process New Data"):
             file_name="Phone_System_Analysis.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
