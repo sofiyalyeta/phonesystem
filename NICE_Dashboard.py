@@ -4,7 +4,6 @@ import plotly.express as px
 import numpy as np 
 import io
 
-
 # =========================
 # File Upload
 # =========================
@@ -42,7 +41,7 @@ if phonesystem_file is not None and "processed" not in st.session_state:
             total_calls[col] = total_calls[col].astype(str)
 
         # =========================
-        # Spam Filter (Vectorized)
+        # Spam Filter
         # =========================
         excluded_mask = (total_calls["InQueue"] == 0) & (total_calls["PreQueue"] > 0)
         spam_calls_df = total_calls.loc[excluded_mask].copy()
@@ -71,7 +70,7 @@ if phonesystem_file is not None and "processed" not in st.session_state:
         total_calls['customer_call_time'] = total_calls[time_cols].sum(axis=1)
 
         # =========================
-        # Call Category (Vectorized)
+        # Call Category
         # =========================
         skill_clean = (
             total_calls["skill_name"]
@@ -97,19 +96,6 @@ if phonesystem_file is not None and "processed" not in st.session_state:
             ],
             default="Other"
         )
-
-        # =========================
-        # Precompute Indicator Columns (FAST)
-        # =========================
-        total_calls["sla_missed"] = (total_calls["SLA"] == -1).astype(int)
-        total_calls["sla_met"] = (total_calls["SLA"] == 0).astype(int)
-        total_calls["sla_exceeded"] = (total_calls["SLA"] == 1).astype(int)
-
-        total_calls["is_inbound"] = (total_calls["call_category"] == "Inbound").astype(int)
-        total_calls["is_outbound"] = (total_calls["call_category"] == "Outbound").astype(int)
-        total_calls["is_voicemail"] = (total_calls["call_category"] == "Voicemail").astype(int)
-        total_calls["is_afterhours"] = (total_calls["call_category"] == "After Hours").astype(int)
-        total_calls["is_noagent"] = (total_calls["call_category"] == "No Agent").astype(int)
 
         # =========================
         # Department Mapping
@@ -141,86 +127,101 @@ if phonesystem_file is not None and "processed" not in st.session_state:
         )
 
         # =========================
-        # Business Hours (Vectorized)
+        # Business Hours
         # =========================
-        total_calls["hour"] = total_calls["start_time"].dt.hour
-        total_calls["minute"] = total_calls["start_time"].dt.minute
-
-        total_calls["Business_Hours"] = 0
-
-        # Customer Support
-        mask = (total_calls["department"] == "Customer Support")
-        total_calls.loc[mask & 
-            ((total_calls["hour"] > 7) |
-            ((total_calls["hour"] == 7) & (total_calls["minute"] >= 0))) &
-            ((total_calls["hour"] < 18) |
-            ((total_calls["hour"] == 18) & (total_calls["minute"] <= 30))),
-            "Business_Hours"] = 1
-
-        # All other departments (8–5)
-        mask = total_calls["department"] != "Customer Support"
-        total_calls.loc[mask &
-            (total_calls["hour"] >= 8) &
-            (total_calls["hour"] < 17),
-            "Business_Hours"] = 1
-
-        # =========================
-        # Monthly Aggregation (FAST GROUPBY)
-        # =========================
-        dfs = {}
-
-        call_type_filters = {
-            "All Calls": total_calls,
-            "All Calls Business Hours": total_calls[total_calls["Business_Hours"] == 1],
-            "Inbound": total_calls[total_calls["is_inbound"] == 1],
-            "Inbound Business Hours": total_calls[(total_calls["is_inbound"] == 1) & (total_calls["Business_Hours"] == 1)],
-            "Voicemail": total_calls[total_calls["is_voicemail"] == 1],
-            "After Hours": total_calls[total_calls["is_afterhours"] == 1],
-            "No Agent": total_calls[total_calls["is_noagent"] == 1],
+        business_hours = {
+            "Customer Support": (7, 0, 18, 30),
+            "Sales": (8, 0, 17, 0),
+            "Billing and Collections": (8, 0, 17, 0),
+            "Technical Team": (9, 0, 17, 0),
+            "Other": (9, 0, 17, 0)
         }
 
-        for name, df_filtered in call_type_filters.items():
+        def is_business_hours(row):
+            call_time = row['start_time']
+            if pd.isna(call_time):
+                return 0
+
+            dep = row['department']
+            start_h, start_m, end_h, end_m = business_hours.get(dep)
+
+            start_dt = call_time.replace(hour=start_h, minute=start_m, second=0)
+            end_dt = call_time.replace(hour=end_h, minute=end_m, second=0)
+
+            return int(start_dt <= call_time <= end_dt)
+
+        total_calls['Business_Hours'] = total_calls.apply(is_business_hours, axis=1)
+
+        # =========================
+        # Monthly Aggregation
+        # =========================
+        dfs = {}
+        call_type_options = [
+            "All Calls",
+            "All Calls Business Hours",
+            "Inbound",
+            "Inbound Business Hours",
+            "Voicemail",
+            "Voicemail Business Hours",
+            "After Hours",
+            "No Agent"
+        ]
+
+        for option in call_type_options:
+
+            if option == "All Calls":
+                df_filtered = total_calls.copy()
+
+            elif option == "All Calls Business Hours":
+                df_filtered = total_calls[total_calls["Business_Hours"] == 1]
+
+            elif option.endswith("Business Hours"):
+                base = option.replace(" Business Hours", "")
+                df_filtered = total_calls[
+                    (total_calls["call_category"] == base) &
+                    (total_calls["Business_Hours"] == 1)
+                ]
+
+            else:
+                df_filtered = total_calls[
+                    total_calls["call_category"] == option
+                ]
 
             if df_filtered.empty:
-                dfs[name] = pd.DataFrame()
+                dfs[option] = pd.DataFrame()
                 continue
 
             monthly = (
                 df_filtered
-                .groupby(["team_name", "department", "Timeframe"], observed=True)
+                .groupby(["team_name", "department", "Timeframe"])
                 .agg(
                     call_volume=("master_contact_id", "count"),
                     total_customer_call_time=("customer_call_time", "sum"),
                     agent_total_time=("Agent_Work_Time", "sum"),
                     abandon_time=("Abandon_Time", "sum"),
-                    sla_missed=("sla_missed", "sum"),
-                    sla_met=("sla_met", "sum"),
-                    sla_exceeded=("sla_exceeded", "sum"),
-                    inbound_calls=("is_inbound", "sum"),
-                    outbound_calls=("is_outbound", "sum"),
-                    voicemail_calls=("is_voicemail", "sum"),
-                    afterhours_calls=("is_afterhours", "sum"),
-                    noagent_calls=("is_noagent", "sum"),
+                    sla_missed=("SLA", lambda x: (x == -1).sum()),
+                    sla_met=("SLA", lambda x: (x == 0).sum()),
+                    sla_exceeded=("SLA", lambda x: (x == 1).sum()),
                     unique_agents=("agent_name", "nunique"),
                 )
                 .reset_index()
             )
 
             monthly["Timeframe"] = monthly["Timeframe"].dt.strftime("%-m-%Y")
-            dfs[name] = monthly
+            dfs[option] = monthly
 
         # =========================
         # Master Contact View
         # =========================
         master_contact_df = (
             total_calls
-            .groupby("master_contact_id", observed=True)
-            .agg(
-                call_count=("contact_id", "count"),
-                first_call=("start_time", "min"),
-                last_call=("start_time", "max"),
-                total_time=("customer_call_time", "sum"),
-            )
+            .groupby("master_contact_id")
+            .agg({
+                "skill_name": lambda x: list(x.dropna().unique()),
+                "contact_id": lambda x: list(x.dropna().unique()),
+                "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
+                "team_name": lambda x: list(x),
+            })
             .reset_index()
         )
 
@@ -236,7 +237,7 @@ if phonesystem_file is not None and "processed" not in st.session_state:
         st.success("Processing complete!")
 
 # =========================
-# Excel Download
+# Excel Download Section
 # =========================
 st.subheader("Export All Data to Excel")
 
@@ -244,20 +245,25 @@ if "dfs" not in st.session_state:
     st.warning("⚠️ Please upload a file to process first.")
 else:
 
+    dfs = st.session_state["dfs"]
+    master_contact_df = st.session_state["master_contact_df"]
+    total_calls = st.session_state["total_calls"]
+    spam_calls_df = st.session_state["spam_calls_df"]
+
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
-        for option, df in st.session_state["dfs"].items():
+        for option, df in dfs.items():
             sheet_name = option[:31]
             if df.empty:
                 pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
             else:
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        st.session_state["master_contact_df"].to_excel(writer, sheet_name="Master_Contacts", index=False)
-        st.session_state["total_calls"].to_excel(writer, sheet_name="Total_Calls", index=False)
-        st.session_state["spam_calls_df"].to_excel(writer, sheet_name="Spam_Calls", index=False)
+        master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
+        total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
+        spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
 
     output.seek(0)
 
@@ -267,4 +273,3 @@ else:
         file_name="Phone_System_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
