@@ -122,10 +122,13 @@ ACW_Time: After Call Work duration formatted as time
 # File Upload
 # =========================
 st.subheader("Phone System File Upload")
-if st.button("Process New Data"):
-    phonesystem_file = st.file_uploader("Upload Phone System Data File", type=["xlsx", "xls"])
+phonesystem_file = st.file_uploader(
+    "Upload Phone System Data File",
+    type=["xlsx", "xls"]
+)
+process_button = st.button("Process New Data")
 
-if phonesystem_file:
+if phonesystem_file is not None and process_button:
 
     with st.spinner("Processing data... Please wait."):
 
@@ -402,5 +405,6 @@ else:
         file_name="Phone_System_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
