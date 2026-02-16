@@ -1,3 +1,10 @@
+import streamlit as st 
+import pandas as pd 
+import plotly.express as px 
+import numpy as np 
+import io
+
+
 # =========================
 # File Upload
 # =========================
@@ -260,3 +267,4 @@ else:
         file_name="Phone_System_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
