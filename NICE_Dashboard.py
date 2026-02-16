@@ -379,7 +379,7 @@ if phonesystem_file is not None and process_button:
 # =========================
 st.subheader("Export All Data to Excel")
 
-if phonesystem_file is None:
+if phonesystem_file is None and process_button:
     st.warning("⚠️ No data has been processed yet. Please upload a file first.")
 else:
     output = io.BytesIO()
@@ -405,6 +405,7 @@ else:
         file_name="Phone_System_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
 
