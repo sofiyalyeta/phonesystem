@@ -311,7 +311,6 @@ if phonesystem_file is not None and process_button:
             if df_filtered.empty:
                 dfs[option] = pd.DataFrame()
                 continue
-
             monthly_team_calls = (
                 df_filtered
                 .groupby(["team_name", "department", "Timeframe"])
@@ -346,7 +345,7 @@ if phonesystem_file is not None and process_button:
                     agents_list=("agent_name", lambda x: list(x.dropna().unique())),
                     skills_list=("skill_name", lambda x: list(x.dropna().unique())),
                     campaigns_list=("campaign_name", lambda x: list(x.dropna().unique())),
-                    ani_list=("ANI", lambda x: list(x.dropna().unique())),
+                    ani_list=("ANI", lambda x: x.value_counts().to_dict()),
 
                     # Call Category Counts
                     inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
@@ -423,5 +422,6 @@ if phonesystem_file is not None and process_button:
             file_name="Phone_System_Analysis.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
