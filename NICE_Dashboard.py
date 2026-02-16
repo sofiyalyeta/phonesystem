@@ -4,6 +4,20 @@ import plotly.express as px
 import numpy as np
 import io
 
+# =========================
+# Session State Initialization
+# =========================
+if "dfs" not in st.session_state:
+    st.session_state.dfs = {}
+
+if "master_contact_df" not in st.session_state:
+    st.session_state.master_contact_df = pd.DataFrame()
+
+if "total_calls" not in st.session_state:
+    st.session_state.total_calls = pd.DataFrame()
+
+if "spam_calls_df" not in st.session_state:
+    st.session_state.spam_calls_df = pd.DataFrame()
 
 st.set_page_config(page_title="Phone System Data Analysis", layout="wide")
 
@@ -264,7 +278,7 @@ if phonesystem_file is not None and process_button:
         # =========================
         # Monthly Aggregation
         # =========================
-        dfs = {}
+        st.session_state.dfs = {}
 
         call_type_options = [
             "All Calls",
@@ -352,7 +366,7 @@ if phonesystem_file is not None and process_button:
 
             monthly_team_calls["Timeframe"] = monthly_team_calls["Timeframe"].dt.strftime("%-m-%Y")
 
-            dfs[option] = monthly_team_calls
+            st.session_state.dfs[option] = monthly_team_calls
 
         # =========================
         # Master Contact View
@@ -374,28 +388,34 @@ if phonesystem_file is not None and process_button:
         master_contact_df["Timeframe"] = pd.to_datetime(master_contact_df["Timeframe"], errors='coerce')
         master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
 
+
+        st.session_state.master_contact_df = master_contact_df
+        st.session_state.total_calls = total_calls
+        st.session_state.spam_calls_df = spam_calls_df
+
+
 # =========================
 # Excel Download Section
 # =========================
 st.subheader("Export All Data to Excel")
 
-if phonesystem_file is None and process_button:
+if not st.session_state.dfs:
     st.warning("⚠️ No data has been processed yet. Please upload a file first.")
-else:
+if st.session_state.dfs:
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
-        for option, df in dfs.items():
+        for option, df in st.session_state.dfs.items():
             sheet_name = option[:31]
             if df.empty:
                 pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
             else:
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
-        total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
-        spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+        st.session_state.master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
+        st.session_state.total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
+        st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
 
     output.seek(0)
 
@@ -405,7 +425,5 @@ else:
         file_name="Phone_System_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-
 
 
