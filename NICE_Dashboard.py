@@ -50,11 +50,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # =========================
 # File Upload
 # =========================
 st.subheader("Phone System File Upload")
-phonesystem_file = st.file_uploader("Upload Phone System Data File", type=["xlsx", "xls"])
+if st.button("Process New Data"):
+    phonesystem_file = st.file_uploader("Upload Phone System Data File", type=["xlsx", "xls"])
 
 if phonesystem_file:
 
