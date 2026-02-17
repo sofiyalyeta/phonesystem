@@ -309,7 +309,7 @@ if phonesystem_file is not None and process_button:
                 df_filtered = total_calls[total_calls["call_category"] == option]
 
             if df_filtered.empty:
-                dfs[option] = pd.DataFrame()
+                st.session_state.dfs[option] = pd.DataFrame()
                 continue
             monthly_team_calls = (
                 df_filtered
@@ -341,11 +341,13 @@ if phonesystem_file is not None and process_button:
                     unique_skills_count=("skill_name", "nunique"),
                     unique_campaigns_count=("campaign_name", "nunique"),
 
-                    # Lists
+                    # Lists and dicts
                     agents_list=("agent_name", lambda x: list(x.dropna().unique())),
                     skills_list=("skill_name", lambda x: list(x.dropna().unique())),
                     campaigns_list=("campaign_name", lambda x: list(x.dropna().unique())),
                     ani_list=("ANI", lambda x: x.value_counts().to_dict()),
+                    dnis_dict=("DNIS", lambda x: x.value_counts().to_dict()),
+
 
                     # Call Category Counts
                     inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
@@ -366,6 +368,82 @@ if phonesystem_file is not None and process_button:
             monthly_team_calls["Timeframe"] = monthly_team_calls["Timeframe"].dt.strftime("%-m-%Y")
 
             st.session_state.dfs[option] = monthly_team_calls
+
+        # =========================
+        # Monthly Aggregation - Skill View
+        # =========================
+        st.session_state.skill_dfs = {}
+
+        for option in call_type_options:
+            if option == "All Calls":
+                df_filtered = total_calls.copy()
+            elif option == "All Calls Business Hours":
+                df_filtered = total_calls[total_calls["Business_Hours"] == 1]
+            elif option.endswith("Business Hours"):
+                base_category = option.replace(" Business Hours", "")
+                df_filtered = total_calls[
+                    (total_calls["call_category"] == base_category) &
+                    (total_calls["Business_Hours"] == 1)
+                ]
+            else:
+                df_filtered = total_calls[total_calls["call_category"] == option]
+
+            if df_filtered.empty:
+                st.session_state.skill_dfs[option] = pd.DataFrame()
+                continue
+
+            monthly_skill_calls = (
+                df_filtered
+                .groupby(["skill_name", "department", "Timeframe"])
+                .agg(
+                    call_volume=("master_contact_id", "count"),
+
+                    total_customer_call_time=("customer_call_time", "sum"),
+                    prequeue_time=("PreQueue", "sum"),
+                    inqueue_time=("InQueue", "sum"),
+                    agent_time=("Agent_Time", "sum"),
+                    postqueue_time=("PostQueue", "sum"),
+                    acw_time=("ACW_Seconds", "sum"),
+                    agent_total_time=("Agent_Work_Time", "sum"),
+                    abandon_time=("Abandon_Time", "sum"),
+
+                    sla_missed=("SLA", lambda x: (x == -1).sum()),
+                    sla_met=("SLA", lambda x: (x == 0).sum()),
+                    sla_exceeded=("SLA", lambda x: (x == 1).sum()),
+
+                    business_hours_calls=("Business_Hours", lambda x: (x == 1).sum()),
+                    after_hours_calls=("Business_Hours", lambda x: (x == 0).sum()),
+
+                    unique_agents_count=("agent_name", "nunique"),
+                    unique_teams_count=("team_name", "nunique"),
+                    unique_campaigns_count=("campaign_name", "nunique"),
+
+                    agents_list=("agent_name", lambda x: list(x.dropna().unique())),
+                    teams_list=("team_name", lambda x: list(x.dropna().unique())),
+                    campaigns_dict=("campaign_name", lambda x: x.value_counts().to_dict()),
+                    ani_dict=("ANI", lambda x: x.value_counts().to_dict()),
+                    dnis_dict=("DNIS", lambda x: x.value_counts().to_dict()),
+
+                    inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
+                    outbound_calls=("call_category", lambda x: (x == "Outbound").sum()),
+                    voicemail_calls=("call_category", lambda x: (x == "Voicemail").sum()),
+                    afterhours_calls=("call_category", lambda x: (x == "After Hours").sum()),
+                    noagent_calls=("call_category", lambda x: (x == "No Agent").sum()),
+                    other_calls=("call_category", lambda x: (x == "Other").sum()),
+                )
+                .reset_index()
+                .sort_values(["Timeframe", "skill_name"])
+            )
+
+            monthly_skill_calls["Timeframe"] = pd.to_datetime(
+                monthly_skill_calls["Timeframe"], errors="coerce"
+            )
+
+            monthly_skill_calls["Timeframe"] = monthly_skill_calls["Timeframe"].dt.strftime("%-m-%Y")
+
+            st.session_state.skill_dfs[option] = monthly_skill_calls
+
+            
 
         # =========================
         # Master Contact View
@@ -422,6 +500,5 @@ if phonesystem_file is not None and process_button:
             file_name="Phone_System_Analysis.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
 
 
