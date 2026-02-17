@@ -509,3 +509,11 @@ if phonesystem_file is not None and process_button:
             st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
 
 
+        output.seek(0)
+
+        st.download_button(
+            label="Download Complete Excel Workbook",
+            data=output,
+            file_name="Phone_System_Analysis.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
