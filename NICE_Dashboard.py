@@ -481,24 +481,31 @@ if phonesystem_file is not None and process_button:
 
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
+            # =========================
+            # TEAM VIEW SHEETS
+            # =========================
             for option, df in st.session_state.dfs.items():
-                sheet_name = option[:31]
+                sheet_name = f"Team - {option}"[:31]
                 if df.empty:
                     pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
                 else:
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
 
+            # =========================
+            # SKILL VIEW SHEETS
+            # =========================
+            for option, df in st.session_state.skill_dfs.items():
+                sheet_name = f"Skill - {option}"[:31]
+                if df.empty:
+                    pd.DataFrame({"No Data": []}).to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            # =========================
+            # DETAIL SHEETS
+            # =========================
             st.session_state.master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
             st.session_state.total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
             st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
-
-        output.seek(0)
-
-        st.download_button(
-            label="Download Complete Excel Workbook",
-            data=output,
-            file_name="Phone_System_Analysis.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
 
 
