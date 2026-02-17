@@ -285,6 +285,8 @@ if phonesystem_file is not None and process_button:
             "All Calls Business Hours",
             "Inbound",
             "Inbound Business Hours",
+            "Outbound",
+            "Outbound Business Hours"
             "Voicemail",
             "Voicemail Business Hours",
             "After Hours",
@@ -443,7 +445,7 @@ if phonesystem_file is not None and process_button:
 
             st.session_state.skill_dfs[option] = monthly_skill_calls
 
-            
+
 
         # =========================
         # Master Contact View
@@ -452,18 +454,43 @@ if phonesystem_file is not None and process_button:
             total_calls
             .groupby("master_contact_id")
             .agg({
-                "skill_name": lambda x: list(x.dropna().unique()),
+                # Identifiers
                 "contact_id": lambda x: list(x.dropna().unique()),
+
+                # Timing Columns (as lists)
+                "PreQueue": lambda x: list(x.fillna(0)),
+                "InQueue": lambda x: list(x.fillna(0)),
+                "Agent_Time": lambda x: list(x.fillna(0)),
+                "ACW_Seconds": lambda x: list(x.fillna(0)),
+                "PostQueue": lambda x: list(x.fillna(0)),
+
+                # Call Info
+                "skill_name": lambda x: list(x.dropna().unique()),
+                "team_name": lambda x: list(x.dropna().unique()),
+                "department": lambda x: list(x.dropna().unique()),
+                "agent_name": lambda x: list(x.dropna().unique()),
+                "call_category": lambda x: list(x.dropna().unique()),
+
+                # Phone Info
+                "DNIS": lambda x: list(x.dropna()),
+                "ANI": lambda x: list(x.dropna()),
+
+                # Dates
                 "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
                 "Timeframe": "first",
-                "team_name": lambda x: list(x),
-                "customer_call_time": lambda x: list(x),
+
+                # Optional: total customer time per interaction
+                "customer_call_time": lambda x: list(x.fillna(0)),
             })
             .reset_index()
         )
 
-        master_contact_df["Timeframe"] = pd.to_datetime(master_contact_df["Timeframe"], errors='coerce')
+        master_contact_df["Timeframe"] = pd.to_datetime(
+            master_contact_df["Timeframe"], errors="coerce"
+        )
         master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
+
+
 
 
         st.session_state.master_contact_df = master_contact_df
