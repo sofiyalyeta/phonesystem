@@ -509,7 +509,27 @@ if phonesystem_file is not None and process_button:
         st.subheader("Export All Data to Excel")
 
         output = io.BytesIO()
+        # =========================
+        # Dynamic File Name
+        # =========================
+        if not st.session_state.total_calls.empty:
 
+            first_month = (
+                st.session_state.total_calls["start_date"]
+                .min()
+                .strftime("%b-%Y")
+            )
+
+            last_month = (
+                st.session_state.total_calls["start_date"]
+                .max()
+                .strftime("%b-%Y")
+            )
+
+            dynamic_filename = f"Phone_System_Analysis_{first_month}_to_{last_month}.xlsx"
+
+        else:
+            dynamic_filename = "Phone_System_Analysis.xlsx"
 
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
 
@@ -546,7 +566,7 @@ if phonesystem_file is not None and process_button:
         st.download_button(
             label="Download Complete Excel Workbook",
             data=output,
-            file_name="Phone_System_Analysis.xlsx",
+            file_name=dynamic_filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
