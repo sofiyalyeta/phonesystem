@@ -453,42 +453,43 @@ if phonesystem_file is not None and process_button:
         master_contact_df = (
             total_calls
             .groupby("master_contact_id")
-            .agg({
+            .agg(
                 # Identifiers
-                "contact_id": lambda x: list(x.dropna().unique()),
-
+                contact_id=("contact_id", lambda x: list(x.dropna().unique())),
+        
                 # Timing Columns (as lists)
-                "PreQueue": lambda x: list(x.fillna(0)),
-                "InQueue": lambda x: list(x.fillna(0)),
-                "Agent_Time": lambda x: list(x.fillna(0)),
-                "ACW_Seconds": lambda x: list(x.fillna(0)),
-                "PostQueue": lambda x: list(x.fillna(0)),
-
+                PreQueue=("PreQueue", lambda x: list(x.fillna(0))),
+                InQueue=("InQueue", lambda x: list(x.fillna(0))),
+                Agent_Time=("Agent_Time", lambda x: list(x.fillna(0))),
+                ACW_Seconds=("ACW_Seconds", lambda x: list(x.fillna(0))),
+                PostQueue=("PostQueue", lambda x: list(x.fillna(0))),
+        
                 # Call Info
-                "skill_name": lambda x: list(x.dropna().unique()),
-                "team_name": lambda x: list(x.dropna().unique()),
-                "department": lambda x: list(x.dropna().unique()),
-                "agent_name": lambda x: list(x.dropna().unique()),
-                "call_category": lambda x: list(x.dropna().unique()),
-
+                skill_name=("skill_name", lambda x: list(x.dropna().unique())),
+                team_name=("team_name", lambda x: list(x.dropna().unique())),
+                department=("department", lambda x: list(x.dropna().unique())),
+                agent_name=("agent_name", lambda x: list(x.dropna().unique())),
+                call_category=("call_category", lambda x: list(x.dropna().unique())),
+        
                 # Phone Info
-                "DNIS": lambda x: list(x.dropna()),
-                "ANI": lambda x: list(x.dropna()),
-                
+                DNIS=("DNIS", lambda x: list(x.dropna())),
+                ANI=("ANI", lambda x: list(x.dropna())),
+        
                 # SLA Counts
                 sla_missed=("SLA", lambda x: (x == -1).sum()),
                 sla_met=("SLA", lambda x: (x == 0).sum()),
                 sla_exceeded=("SLA", lambda x: (x == 1).sum()),
-                 
+        
                 # Dates
-                "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
-                "Timeframe": "first",
-
+                start_time=("start_time", lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S"))),
+                Timeframe=("Timeframe", "first"),
+        
                 # Optional: total customer time per interaction
-                "customer_call_time": lambda x: list(x.fillna(0)),
-            })
+                customer_call_time=("customer_call_time", lambda x: list(x.fillna(0))),
+            )
             .reset_index()
         )
+
 
         master_contact_df["Timeframe"] = pd.to_datetime(
             master_contact_df["Timeframe"], errors="coerce"
@@ -569,4 +570,5 @@ if phonesystem_file is not None and process_button:
             file_name=dynamic_filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
