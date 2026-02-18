@@ -474,7 +474,12 @@ if phonesystem_file is not None and process_button:
                 # Phone Info
                 "DNIS": lambda x: list(x.dropna()),
                 "ANI": lambda x: list(x.dropna()),
-
+                
+                # SLA Counts
+                sla_missed=("SLA", lambda x: (x == -1).sum()),
+                sla_met=("SLA", lambda x: (x == 0).sum()),
+                sla_exceeded=("SLA", lambda x: (x == 1).sum()),
+                 
                 # Dates
                 "start_time": lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S")),
                 "Timeframe": "first",
@@ -544,3 +549,4 @@ if phonesystem_file is not None and process_button:
             file_name="Phone_System_Analysis.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
