@@ -577,36 +577,6 @@ if phonesystem_file is not None and process_button:
 # File Upload
 # =========================
 st.subheader("Processed Phone System File Upload")
-processed_file = st.file_uploader(
-    "Upload Processed Phone System Data File",
-    type=["xlsx", "xls"]
-)
-
-if processed_file:
-
-    #total_calls = pd.read_excel(phonesystem_file)
-
-    # Get unique departments from dataframe column
-    departments = df["departments"].dropna().unique()
-
-    # Add "All" option
-    department_options = ["All"] + sorted(departments)
-
-    selected_department = st.selectbox(
-        "Select the department:",
-        department_options
-    )
-
-
-
-    # Optional: filter logic
-    if selected_department != "All":
-        filtered_df = df[df["departments"] == selected_department]
-    else:
-        filtered_df = df
-
-
-st.subheader("Processed Phone System File Upload")
 
 processed_file = st.file_uploader(
     "Upload Processed Phone System Data File",
