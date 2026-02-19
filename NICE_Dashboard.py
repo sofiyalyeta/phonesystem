@@ -490,7 +490,7 @@ if phonesystem_file is not None and process_button:
         
                 # Optional: total customer time per interaction
                 customer_call_time=("customer_call_time", lambda x: list(x.fillna(0))),
-                agent_total_time = ('Agent_Work_Time', lambda x: list(x.fillna(0))),
+                agent_total_time = ('Agent_Work_Time', , lambda x: list(x.fillna(0))),
             )
             .reset_index()
         )
@@ -577,7 +577,6 @@ if phonesystem_file is not None and process_button:
         )
 
 
-
 # =========================
 # File Upload
 # =========================
@@ -597,13 +596,26 @@ if processed_file:
     st.session_state.processed_sheets = all_sheets
 
     # =========================
-    # Collect Departments From All Sheets
+    # Collect Departments From NON-Master Sheets
     # =========================
     department_set = set()
 
     for sheet_name, df in all_sheets.items():
+
+        # Skip Master_Contacts (department is a list there)
+        if sheet_name == "Master_Contacts":
+            continue
+
         if "department" in df.columns:
-            department_set.update(df["department"].dropna().unique())
+
+            valid_departments = df["department"].dropna()
+
+            # Only keep scalar string values (ignore lists)
+            valid_departments = valid_departments[
+                valid_departments.apply(lambda x: isinstance(x, str))
+            ]
+
+            department_set.update(valid_departments.unique())
 
     department_list = sorted(list(department_set))
 
@@ -611,64 +623,77 @@ if processed_file:
     department_options = ["All"] + department_list
 
     # =========================
-    # Department Selector (NO DEFAULT)
+    # Department Selector
     # =========================
     selected_department = st.selectbox(
         "Select Department",
         options=department_options,
-        index=None,   # ✅ No default selection
+        index=None,
         placeholder="Choose a department..."
     )
 
-
     exclude_outside_hours = st.toggle(
-    "Exclude calls outside business hours?",
-    value=False)
+        "Exclude calls outside business hours?",
+        value=False
+    )
 
     process_filtered_button = st.button("Process Selection")
 
     if selected_department and process_filtered_button:
 
-
         filtered_sheets = {}
 
         for sheet_name, df in all_sheets.items():
 
+            temp_df = df.copy()
+
             # =========================
             # Department Filtering
             # =========================
-            if selected_department == "All":
-                temp_df = df.copy()
+            if selected_department != "All":
 
-            elif "department" in df.columns:
-                temp_df = df[df["department"] == selected_department]
+                if sheet_name == "Master_Contacts" and "department" in temp_df.columns:
 
-            else:
-                temp_df = df.copy()
+                    # Excel may store list column as string → convert safely
+                    def contains_department(value):
+                        if isinstance(value, list):
+                            return selected_department in value
+                        if isinstance(value, str):
+                            # Handle stringified list from Excel
+                            try:
+                                parsed = eval(value)
+                                if isinstance(parsed, list):
+                                    return selected_department in parsed
+                            except:
+                                return value == selected_department
+                        return False
+
+                    temp_df = temp_df[
+                        temp_df["department"].apply(contains_department)
+                    ]
+
+                elif "department" in temp_df.columns:
+                    temp_df = temp_df[
+                        temp_df["department"] == selected_department
+                    ]
 
             # =========================
-            # Business Hours Toggle Logic
+            # Business Hours Filtering
             # =========================
             if exclude_outside_hours:
 
-                # TEAM & SKILL SHEETS
-                # Keep only sheets that are already Business Hours versions
+                # TEAM & SKILL SHEETS → only keep Business Hours versions
                 if sheet_name.startswith("Team") or sheet_name.startswith("Skill"):
                     if "Business Hours" not in sheet_name:
-                        continue  # Skip non-business-hours sheets
+                        continue
 
-                # TOTAL CALLS SHEET → filter rows
+                # TOTAL CALLS → row-level filter
                 if sheet_name == "Total_Calls" and "Business_Hours" in temp_df.columns:
                     temp_df = temp_df[temp_df["Business_Hours"] == 1]
 
-                # MASTER CONTACTS → filter using aggregated flag
-                if sheet_name == "Master_Contacts" and "business_hours" in temp_df.columns:
-                    temp_df = temp_df[temp_df["business_hours"] == 1]
-
-                # TEAM & SKILL SHEETS → only keep Business Hours sheets
-                if sheet_name.startswith("Team") or sheet_name.startswith("Skill"):
-                    if "Business Hours" not in sheet_name:
-                        continue  # skip this sheet entirely
+                # MASTER CONTACTS → use aggregated flag
+                if sheet_name == "Master_Contacts" and "business_hours_flag" in temp_df.columns:
+                    temp_df = temp_df[temp_df["business_hours_flag"] == 1]
 
             filtered_sheets[sheet_name] = temp_df
 
