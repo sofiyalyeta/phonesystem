@@ -490,7 +490,7 @@ if phonesystem_file is not None and process_button:
         
                 # Optional: total customer time per interaction
                 customer_call_time=("customer_call_time", lambda x: list(x.fillna(0))),
-                agent_total_time = ('Agent_Work_Time', , lambda x: list(x.fillna(0))),
+                agent_total_time = ('Agent_Work_Time', lambda x: list(x.fillna(0))),
             )
             .reset_index()
         )
@@ -739,4 +739,5 @@ if processed_file:
             for name, df in customer_sheets.items():
                 st.subheader(name)
                 st.dataframe(df, use_container_width=True)
+
 
