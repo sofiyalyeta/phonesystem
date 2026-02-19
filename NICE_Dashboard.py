@@ -479,6 +479,10 @@ if phonesystem_file is not None and process_button:
                 sla_missed=("SLA", lambda x: (x == -1).sum()),
                 sla_met=("SLA", lambda x: (x == 0).sum()),
                 sla_exceeded=("SLA", lambda x: (x == 1).sum()),
+
+                # Business Hours
+                business_hours_flag=("Business_Hours", lambda x: int((x == 1).any())),
+                business_hours_list=("Business_Hours", lambda x: list(x.fillna(0))),
         
                 # Dates
                 start_time=("start_time", lambda x: list(x.dt.strftime("%Y-%m-%d %H:%M:%S"))),
@@ -486,6 +490,7 @@ if phonesystem_file is not None and process_button:
         
                 # Optional: total customer time per interaction
                 customer_call_time=("customer_call_time", lambda x: list(x.fillna(0))),
+                agent_total_time = ('Agent_Work_Time', , lambda x: list(x.fillna(0))),
             )
             .reset_index()
         )
@@ -615,21 +620,57 @@ if processed_file:
         placeholder="Choose a department..."
     )
 
-    if selected_department:
+
+    exclude_outside_hours = st.toggle(
+    "Exclude calls outside business hours?",
+    value=False)
+
+    process_filtered_button = st.button("Process Selection")
+
+    if selected_department and process_filtered_button:
+
 
         filtered_sheets = {}
 
         for sheet_name, df in all_sheets.items():
 
+            # =========================
+            # Department Filtering
+            # =========================
             if selected_department == "All":
-                filtered_sheets[sheet_name] = df.copy()
+                temp_df = df.copy()
 
             elif "department" in df.columns:
-                filtered_sheets[sheet_name] = df[df["department"] == selected_department]
+                temp_df = df[df["department"] == selected_department]
 
             else:
-                # Sheets without department column remain unchanged
-                filtered_sheets[sheet_name] = df.copy()
+                temp_df = df.copy()
+
+            # =========================
+            # Business Hours Toggle Logic
+            # =========================
+            if exclude_outside_hours:
+
+                # TEAM & SKILL SHEETS
+                # Keep only sheets that are already Business Hours versions
+                if sheet_name.startswith("Team") or sheet_name.startswith("Skill"):
+                    if "Business Hours" not in sheet_name:
+                        continue  # Skip non-business-hours sheets
+
+                # TOTAL CALLS SHEET → filter rows
+                if sheet_name == "Total_Calls" and "Business_Hours" in temp_df.columns:
+                    temp_df = temp_df[temp_df["Business_Hours"] == 1]
+
+                # MASTER CONTACTS → filter using aggregated flag
+                if sheet_name == "Master_Contacts" and "business_hours" in temp_df.columns:
+                    temp_df = temp_df[temp_df["business_hours"] == 1]
+
+                # TEAM & SKILL SHEETS → only keep Business Hours sheets
+                if sheet_name.startswith("Team") or sheet_name.startswith("Skill"):
+                    if "Business Hours" not in sheet_name:
+                        continue  # skip this sheet entirely
+
+            filtered_sheets[sheet_name] = temp_df
 
         st.session_state.filtered_sheets = filtered_sheets
 
