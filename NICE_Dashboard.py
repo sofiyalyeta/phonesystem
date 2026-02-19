@@ -573,3 +573,133 @@ if phonesystem_file is not None and process_button:
 
 
 
+# =========================
+# File Upload
+# =========================
+st.subheader("Processed Phone System File Upload")
+processed_file = st.file_uploader(
+    "Upload Processed Phone System Data File",
+    type=["xlsx", "xls"]
+)
+
+if processed_file:
+
+    #total_calls = pd.read_excel(phonesystem_file)
+
+    # Get unique departments from dataframe column
+    departments = df["departments"].dropna().unique()
+
+    # Add "All" option
+    department_options = ["All"] + sorted(departments)
+
+    selected_department = st.selectbox(
+        "Select the department:",
+        department_options
+    )
+
+
+
+    # Optional: filter logic
+    if selected_department != "All":
+        filtered_df = df[df["departments"] == selected_department]
+    else:
+        filtered_df = df
+
+
+st.subheader("Processed Phone System File Upload")
+
+processed_file = st.file_uploader(
+    "Upload Processed Phone System Data File",
+    type=["xlsx", "xls"]
+)
+
+if processed_file:
+
+    # Load ALL sheets into dictionary
+    all_sheets = pd.read_excel(processed_file, sheet_name=None)
+
+    # Store original sheets
+    st.session_state.processed_sheets = all_sheets
+
+    # =========================
+    # Collect Departments From All Sheets
+    # =========================
+    department_set = set()
+
+    for sheet_name, df in all_sheets.items():
+        if "department" in df.columns:
+            department_set.update(df["department"].dropna().unique())
+
+    department_list = sorted(list(department_set))
+
+    # Add "All" option
+    department_options = ["All"] + department_list
+
+    # =========================
+    # Department Selector (NO DEFAULT)
+    # =========================
+    selected_department = st.selectbox(
+        "Select Department",
+        options=department_options,
+        index=None,   # ✅ No default selection
+        placeholder="Choose a department..."
+    )
+
+    if selected_department:
+
+        filtered_sheets = {}
+
+        for sheet_name, df in all_sheets.items():
+
+            if selected_department == "All":
+                filtered_sheets[sheet_name] = df.copy()
+
+            elif "department" in df.columns:
+                filtered_sheets[sheet_name] = df[df["department"] == selected_department]
+
+            else:
+                # Sheets without department column remain unchanged
+                filtered_sheets[sheet_name] = df.copy()
+
+        st.session_state.filtered_sheets = filtered_sheets
+
+        tab1, tab2, tab3 = st.tabs(["Team", "Skill", "Customer"])
+
+        # =========================
+        # TEAM TAB
+        # =========================
+        with tab1:
+            team_sheets = {
+                name: df for name, df in filtered_sheets.items()
+                if name.startswith("Team")
+            }
+
+            for name, df in team_sheets.items():
+                st.subheader(name)
+                st.dataframe(df, use_container_width=True)
+
+        # =========================
+        # SKILL TAB
+        # =========================
+        with tab2:
+            skill_sheets = {
+                name: df for name, df in filtered_sheets.items()
+                if name.startswith("Skill")
+            }
+
+            for name, df in skill_sheets.items():
+                st.subheader(name)
+                st.dataframe(df, use_container_width=True)
+
+        # =========================
+        # CUSTOMER TAB
+        # =========================
+        with tab3:
+            customer_sheets = {
+                name: df for name, df in filtered_sheets.items()
+                if name in ["Master_Contacts", "Total_Calls"]
+            }
+
+            for name, df in customer_sheets.items():
+                st.subheader(name)
+                st.dataframe(df, use_container_width=True)
