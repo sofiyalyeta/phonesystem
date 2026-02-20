@@ -434,6 +434,66 @@ if phonesystem_file is not None and process_button:
         st.session_state.spam_calls_df = spam_calls_df
 
 
+
+        # =========================
+        # Phone Role Columns
+        # =========================
+        total_calls["internal_number"] = np.where(
+            total_calls["call_category"] == "Outbound",
+            total_calls["ANI"],
+            total_calls["DNIS"]
+        )
+
+        total_calls["external_number"] = np.where(
+            total_calls["call_category"] == "Outbound",
+            total_calls["DNIS"],
+            total_calls["ANI"]
+        )
+        # =========================
+        # Phone Numbers DataFrame
+        # =========================
+        phone_internal = total_calls.copy()
+        phone_internal["phone_number"] = phone_internal["internal_number"]
+        phone_internal["internal_external"] = "Internal"
+
+        phone_external = total_calls.copy()
+        phone_external["phone_number"] = phone_external["external_number"]
+        phone_external["internal_external"] = "External"
+
+        phone_df = pd.concat([phone_internal, phone_external], ignore_index=True)
+
+        phone_df = phone_df.dropna(subset=["phone_number"])
+
+        phone_numbers_df = (
+            phone_df
+            .groupby(["Timeframe", "phone_number", "internal_external"])
+            .agg(
+                contact_count=("master_contact_id", "count"),
+
+                teams_dict=("team_name", lambda x: x.value_counts().to_dict()),
+                departments_dict=("department", lambda x: x.value_counts().to_dict()),
+                agents_dict=("agent_name", lambda x: x.value_counts().to_dict()),
+                skillss_dict=("skill_name", lambda x: x.value_counts().to_dict()),
+
+                total_agent_time=("Agent_Work_Time", "sum"),
+                total_customer_time=("customer_call_time", "sum"),
+
+                call_times_list=("start_time", lambda x: list(
+                    x.dt.strftime("%Y-%m-%d %H:%M:%S")
+                ))
+            )
+            .reset_index()
+        )
+
+        phone_numbers_df["Timeframe"] = pd.to_datetime(
+            phone_numbers_df["Timeframe"], errors="coerce"
+        )
+        phone_numbers_df["Timeframe"] = phone_numbers_df["Timeframe"].dt.strftime("%-m-%Y")
+
+        st.session_state.phone_numbers_df = phone_numbers_df
+
+
+
         # =========================
         # Excel Download
         # =========================
@@ -463,6 +523,7 @@ if phonesystem_file is not None and process_button:
             st.session_state.master_contact_df.to_excel(writer, sheet_name="Master_Contacts", index=False)
             st.session_state.total_calls.to_excel(writer, sheet_name="Total_Calls", index=False)
             st.session_state.spam_calls_df.to_excel(writer, sheet_name="Spam_Calls", index=False)
+            st.session_state.phone_numbers_df.to_excel(writer,sheet_name="Phone_Numbers",index=False)
 
         output.seek(0)
         st.download_button(
@@ -641,4 +702,9 @@ if processed_file:
         # PHONE NUMBER TAB
         # =========================
         with tab4:
-            st.write("Phone Numbers will appear here")
+            if "Phone_Numbers" in filtered_sheets:
+                st.dataframe(filtered_sheets["Phone_Numbers"], use_container_width=True)
+            elif "phone_numbers_df" in st.session_state:
+                st.dataframe(st.session_state.phone_numbers_df, use_container_width=True)
+            else:
+                st.write("No phone number data available.")
