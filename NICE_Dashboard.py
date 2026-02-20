@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -347,8 +348,35 @@ if phonesystem_file is not None and process_button:
                     agents_list=("agent_name", lambda x: list(x.dropna().unique())),
                     skills_list=("skill_name", lambda x: list(x.dropna().unique())),
                     campaigns_list=("campaign_name", lambda x: list(x.dropna().unique())),
-                    ani_list=("ANI", lambda x: x.value_counts().to_dict()),
-                    dnis_dict=("DNIS", lambda x: x.value_counts().to_dict()),
+                    internal_num_dict=(
+                        ["ANI", "DNIS", "call_category"],
+                        lambda x: (
+                            pd.concat([
+                                # Outbound → ANI is internal
+                                x.loc[x["call_category"] == "Outbound", "ANI"],
+                                # Non-Outbound → DNIS is internal
+                                x.loc[x["call_category"] != "Outbound", "DNIS"],
+                            ])
+                            .dropna()
+                            .value_counts()
+                            .to_dict()
+                        )
+                    ),
+
+                    external_num_dict=(
+                        ["ANI", "DNIS", "call_category"],
+                        lambda x: (
+                            pd.concat([
+                                # Outbound → DNIS is external
+                                x.loc[x["call_category"] == "Outbound", "DNIS"],
+                                # Non-Outbound → ANI is external
+                                x.loc[x["call_category"] != "Outbound", "ANI"],
+                            ])
+                            .dropna()
+                            .value_counts()
+                            .to_dict()
+                        )
+                    ),
 
 
                     # Call Category Counts
@@ -423,8 +451,33 @@ if phonesystem_file is not None and process_button:
                     agents_list=("agent_name", lambda x: list(x.dropna().unique())),
                     teams_list=("team_name", lambda x: list(x.dropna().unique())),
                     campaigns_dict=("campaign_name", lambda x: x.value_counts().to_dict()),
-                    ani_dict=("ANI", lambda x: x.value_counts().to_dict()),
-                    dnis_dict=("DNIS", lambda x: x.value_counts().to_dict()),
+                    internal_num_dict=(
+                        ["ANI", "DNIS", "call_category"],
+                        lambda x: (
+                            pd.concat([
+                                x.loc[x["call_category"] == "Outbound", "ANI"],
+                                x.loc[x["call_category"] != "Outbound", "DNIS"],
+                            ])
+                            .dropna()
+                            .value_counts()
+                            .to_dict()
+                        )
+                    ),
+
+                    external_num_dict=(
+                        ["ANI", "DNIS", "call_category"],
+                        lambda x: (
+                            pd.concat([
+                                x.loc[x["call_category"] == "Outbound", "DNIS"],
+                                x.loc[x["call_category"] != "Outbound", "ANI"],
+                            ])
+                            .dropna()
+                            .value_counts()
+                            .to_dict()
+                        )
+                    ),
+
+
 
                     inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
                     outbound_calls=("call_category", lambda x: (x == "Outbound").sum()),
@@ -472,8 +525,37 @@ if phonesystem_file is not None and process_button:
                 call_category=("call_category", lambda x: list(x.dropna().unique())),
         
                 # Phone Info
-                DNIS=("DNIS", lambda x: list(x.dropna())),
-                ANI=("ANI", lambda x: list(x.dropna())),
+                internal_num_list=(
+                    ["ANI", "DNIS", "call_category"],
+                    lambda x: (
+                        pd.concat([
+                            # Outbound → ANI is internal
+                            x.loc[x["call_category"] == "Outbound", "ANI"],
+
+                            # Non-Outbound → DNIS is internal
+                            x.loc[x["call_category"] != "Outbound", "DNIS"],
+                        ])
+                        .dropna()
+                        .unique()
+                        .tolist()
+                    )
+                ),
+
+                external_num_list=(
+                    ["ANI", "DNIS", "call_category"],
+                    lambda x: (
+                        pd.concat([
+                            # Outbound → DNIS is external
+                            x.loc[x["call_category"] == "Outbound", "DNIS"],
+
+                            # Non-Outbound → ANI is external
+                            x.loc[x["call_category"] != "Outbound", "ANI"],
+                        ])
+                        .dropna()
+                        .unique()
+                        .tolist()
+                    )
+                ),
         
                 # SLA Counts
                 sla_missed=("SLA", lambda x: (x == -1).sum()),
@@ -699,7 +781,7 @@ if processed_file:
 
         st.session_state.filtered_sheets = filtered_sheets
 
-        tab1, tab2, tab3 = st.tabs(["Team", "Skill", "Customer"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Team", "Skill", "Customer", "Phone Numbers"])
 
         # =========================
         # TEAM TAB
@@ -713,6 +795,7 @@ if processed_file:
             for name, df in team_sheets.items():
                 st.subheader(name)
                 st.dataframe(df, use_container_width=True)
+
 
         # =========================
         # SKILL TAB
@@ -740,4 +823,8 @@ if processed_file:
                 st.subheader(name)
                 st.dataframe(df, use_container_width=True)
 
-
+        # =========================
+        # PHONE NUMBER TAB
+        # =========================
+        with tab4:
+            st.write("Phone Numbers will appear here")
