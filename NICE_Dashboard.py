@@ -493,14 +493,6 @@ if processed_file:
                 st.warning("Team - All Calls sheet not found.")
                 st.stop()
 
-            # =============================
-            # VIEW LEVEL SELECTOR
-            # =============================
-            view_level = st.radio(
-                "Select View Level",
-                options=["Department", "Team", "Skill"],
-                horizontal=True
-            )
 
             # =============================
             # FILTER BASED ON VIEW LEVEL
