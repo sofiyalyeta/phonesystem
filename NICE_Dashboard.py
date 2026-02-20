@@ -392,39 +392,6 @@ if phonesystem_file is not None and process_button:
                 agent_name=("agent_name", lambda x: list(x.dropna().unique())),
                 call_category=("call_category", lambda x: list(x.dropna().unique())),
 
-                # Phone Info
-                internal_num_list=(
-                    ["ANI", "DNIS", "call_category"],
-                    lambda x: (
-                        pd.concat([
-                            # Outbound → ANI is internal
-                            x.loc[x["call_category"] == "Outbound", "ANI"],
-
-                            # Non-Outbound → DNIS is internal
-                            x.loc[x["call_category"] != "Outbound", "DNIS"],
-                        ])
-                        .dropna()
-                        .unique()
-                        .tolist()
-                    )
-                ),
-
-                external_num_list=(
-                    ["ANI", "DNIS", "call_category"],
-                    lambda x: (
-                        pd.concat([
-                            # Outbound → DNIS is external
-                            x.loc[x["call_category"] == "Outbound", "DNIS"],
-
-                            # Non-Outbound → ANI is external
-                            x.loc[x["call_category"] != "Outbound", "ANI"],
-                        ])
-                        .dropna()
-                        .unique()
-                        .tolist()
-                    )
-                ),
-
                 # SLA Counts
                 sla_missed=("SLA", lambda x: (x == -1).sum()),
                 sla_met=("SLA", lambda x: (x == 0).sum()),
