@@ -300,32 +300,6 @@ if phonesystem_file is not None and process_button:
                     teams_list=("team_name", lambda x: list(x.dropna().unique())),
                     campaigns_dict=("campaign_name", lambda x: x.value_counts().to_dict()),
 
-                    internal_num_dict=(
-                        ["ANI", "DNIS", "call_category"],
-                        lambda x: (
-                            pd.concat([
-                                x.loc[x["call_category"] == "Outbound", "ANI"],
-                                x.loc[x["call_category"] != "Outbound", "DNIS"],
-                            ])
-                            .dropna()
-                            .value_counts()
-                            .to_dict()
-                        )
-                    ),
-
-                    external_num_dict=(
-                        ["ANI", "DNIS", "call_category"],
-                        lambda x: (
-                            pd.concat([
-                                x.loc[x["call_category"] == "Outbound", "DNIS"],
-                                x.loc[x["call_category"] != "Outbound", "ANI"],
-                            ])
-                            .dropna()
-                            .value_counts()
-                            .to_dict()
-                        )
-                    ),
-
                     inbound_calls=("call_category", lambda x: (x == "Inbound").sum()),
                     outbound_calls=("call_category", lambda x: (x == "Outbound").sum()),
                     voicemail_calls=("call_category", lambda x: (x == "Voicemail").sum()),
@@ -336,6 +310,54 @@ if phonesystem_file is not None and process_button:
                 .reset_index()
                 .sort_values(["Timeframe", "skill_name"])
             )
+
+
+
+            # =========================
+            # Add Internal/External Number Dictionaries
+            # =========================
+
+            def build_internal_dict(group):
+                combined = pd.concat([
+                    group.loc[group["call_category"] == "Outbound", "ANI"],
+                    group.loc[group["call_category"] != "Outbound", "DNIS"],
+                ])
+                return combined.dropna().value_counts().to_dict()
+
+            def build_external_dict(group):
+                combined = pd.concat([
+                    group.loc[group["call_category"] == "Outbound", "DNIS"],
+                    group.loc[group["call_category"] != "Outbound", "ANI"],
+                ])
+                return combined.dropna().value_counts().to_dict()
+
+
+            internal_dict_series = (
+                df_filtered
+                .groupby(["skill_name", "department", "team_name", "Timeframe"])
+                .apply(build_internal_dict)
+                .reset_index(name="internal_num_dict")
+            )
+
+            external_dict_series = (
+                df_filtered
+                .groupby(["skill_name", "department", "team_name", "Timeframe"])
+                .apply(build_external_dict)
+                .reset_index(name="external_num_dict")
+            )
+
+            monthly_skill_calls = monthly_skill_calls.merge(
+                internal_dict_series,
+                on=["skill_name", "department", "team_name", "Timeframe"],
+                how="left"
+            )
+
+            monthly_skill_calls = monthly_skill_calls.merge(
+                external_dict_series,
+                on=["skill_name", "department", "team_name", "Timeframe"],
+                how="left"
+            )
+
 
             monthly_skill_calls["Timeframe"] = pd.to_datetime(
                 monthly_skill_calls["Timeframe"], errors="coerce"
