@@ -717,13 +717,30 @@ if processed_file:
                 st.subheader(name)
                 st.dataframe(df, use_container_width=True)
 
+
         # =========================
         # PHONE NUMBER TAB
         # =========================
         with tab4:
+
             if "Phone_Numbers" in filtered_sheets:
-                st.dataframe(filtered_sheets["Phone_Numbers"], use_container_width=True)
+                phone_df = filtered_sheets["Phone_Numbers"].copy()
+
             elif "phone_numbers_df" in st.session_state:
-                st.dataframe(st.session_state.phone_numbers_df, use_container_width=True)
+                phone_df = st.session_state.phone_numbers_df.copy()
+
+            else:
+                phone_df = pd.DataFrame()
+
+            if not phone_df.empty:
+
+                # 🔹 Filter to External Numbers Only
+                external_numbers_df = phone_df[
+                    phone_df["internal_external"] == "External"
+                ]
+
+                st.subheader("External Phone Numbers Only")
+                st.dataframe(external_numbers_df, use_container_width=True)
+
             else:
                 st.write("No phone number data available.")
