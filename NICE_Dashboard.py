@@ -445,6 +445,36 @@ if phonesystem_file is not None and process_button:
             .reset_index()
         )
 
+        # Build internal/external number lists separately
+        def build_internal_numbers(group):
+            combined = pd.concat([
+                group.loc[group["call_category"] == "Outbound", "ANI"],
+                group.loc[group["call_category"] != "Outbound", "DNIS"],
+            ])
+            return combined.dropna().unique().tolist()
+
+        def build_external_numbers(group):
+            combined = pd.concat([
+                group.loc[group["call_category"] == "Outbound", "DNIS"],
+                group.loc[group["call_category"] != "Outbound", "ANI"],
+            ])
+            return combined.dropna().unique().tolist()
+
+        internal_external_df = (
+            total_calls
+            .groupby("master_contact_id")
+            .apply(lambda g: pd.Series({
+                "internal_num_list": build_internal_numbers(g),
+                "external_num_list": build_external_numbers(g),
+            }))
+            .reset_index()
+        )
+
+        master_contact_df = master_contact_df.merge(
+            internal_external_df,
+            on="master_contact_id",
+            how="left"
+        )
 
         master_contact_df["Timeframe"] = pd.to_datetime(
             master_contact_df["Timeframe"], errors="coerce"
