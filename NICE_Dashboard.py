@@ -473,19 +473,20 @@ if processed_file:
         # =========================
         with tab4:
             st.write("Phone Numbers will appear here")
+
             # =============================
             # VIEW LEVEL SELECTOR
             # =============================
             view_level = st.radio(
                 "Select View Level",
-                options=["Department", "Team", "Skill"],
+                options=["Team", "Skill"],
+                index=0,  # default to Team
                 horizontal=True
             )
 
             # =============================
             # LOAD ONLY ALL CALLS SHEETS
             # =============================
-
             team_all_calls = filtered_sheets.get("Team - All Calls")
             skill_all_calls = filtered_sheets.get("Skill - All Calls")
 
@@ -493,16 +494,10 @@ if processed_file:
                 st.warning("Team - All Calls sheet not found.")
                 st.stop()
 
-
             # =============================
             # FILTER BASED ON VIEW LEVEL
             # =============================
-            if view_level == "Department":
-
-                # Department already filtered earlier
-                working_df = team_all_calls.copy()
-
-            elif view_level == "Team":
+            if view_level == "Team":
 
                 teams = sorted(team_all_calls["team_name"].dropna().unique())
 
