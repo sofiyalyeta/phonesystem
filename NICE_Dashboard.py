@@ -733,28 +733,28 @@ if processed_file:
 
             if not phone_df.empty:
 
-                # 🔹 Filter to External Numbers Only
-                external_numbers_df = phone_df[
-                    phone_df["internal_external"] == "External"
+                # 🔹 Filter to Internal Numbers Only
+                internal_numbers_df = phone_df[
+                    phone_df["internal_external"] == "Internal"
                 ].copy()
 
-                # 🔹 Convert Timeframe to datetime for correct sorting
-                external_numbers_df["Timeframe_sort"] = pd.to_datetime(
-                    external_numbers_df["Timeframe"],
+                # 🔹 Convert Timeframe back to datetime for proper sorting
+                internal_numbers_df["Timeframe_sort"] = pd.to_datetime(
+                    internal_numbers_df["Timeframe"],
                     format="%m-%Y",
                     errors="coerce"
                 )
 
-                # 🔹 Sort by phone number then timeframe
-                external_numbers_df = external_numbers_df.sort_values(
+                # 🔹 Sort by phone number → timeframe
+                internal_numbers_df = internal_numbers_df.sort_values(
                     ["phone_number", "Timeframe_sort"]
                 )
 
-                # 🔹 Drop helper column
-                external_numbers_df = external_numbers_df.drop(columns=["Timeframe_sort"])
+                # 🔹 Remove helper column
+                internal_numbers_df = internal_numbers_df.drop(columns=["Timeframe_sort"])
 
-                st.subheader("External Phone Numbers Only (Sorted by Number → Time)")
-                st.dataframe(external_numbers_df, use_container_width=True)
+                st.subheader("Internal Phone Numbers (Sorted by Number → Time)")
+                st.dataframe(internal_numbers_df, use_container_width=True)
 
             else:
                 st.write("No phone number data available.")
