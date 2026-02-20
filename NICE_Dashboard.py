@@ -483,64 +483,61 @@ if processed_file:
             )
 
             # =============================
-            # Collect Relevant Sheets
+            # LOAD ONLY ALL CALLS SHEETS
             # =============================
-            team_sheets = {
-                name: df for name, df in filtered_sheets.items()
-                if name.startswith("Team")
-            }
 
-            skill_sheets = {
-                name: df for name, df in filtered_sheets.items()
-                if name.startswith("Skill")
-            }
+            team_all_calls = filtered_sheets.get("Team - All Calls")
+            skill_all_calls = filtered_sheets.get("Skill - All Calls")
 
-            if not team_sheets:
-                st.warning("No data available.")
+            if team_all_calls is None:
+                st.warning("Team - All Calls sheet not found.")
                 st.stop()
 
-            combined_team_df = pd.concat(team_sheets.values(), ignore_index=True)
-
-            if skill_sheets:
-                combined_skill_df = pd.concat(skill_sheets.values(), ignore_index=True)
-            else:
-                combined_skill_df = pd.DataFrame()
+            # =============================
+            # VIEW LEVEL SELECTOR
+            # =============================
+            view_level = st.radio(
+                "Select View Level",
+                options=["Department", "Team", "Skill"],
+                horizontal=True
+            )
 
             # =============================
             # FILTER BASED ON VIEW LEVEL
             # =============================
             if view_level == "Department":
 
-                working_df = combined_team_df
+                # Department already filtered earlier
+                working_df = team_all_calls.copy()
 
             elif view_level == "Team":
 
-                teams = sorted(combined_team_df["team_name"].dropna().unique())
+                teams = sorted(team_all_calls["team_name"].dropna().unique())
 
                 selected_team = st.selectbox(
                     "Select Team",
                     options=teams
                 )
 
-                working_df = combined_team_df[
-                    combined_team_df["team_name"] == selected_team
+                working_df = team_all_calls[
+                    team_all_calls["team_name"] == selected_team
                 ]
 
             elif view_level == "Skill":
 
-                if combined_skill_df.empty:
-                    st.warning("No skill-level data available.")
+                if skill_all_calls is None:
+                    st.warning("Skill - All Calls sheet not found.")
                     st.stop()
 
-                skills = sorted(combined_skill_df["skill_name"].dropna().unique())
+                skills = sorted(skill_all_calls["skill_name"].dropna().unique())
 
                 selected_skill = st.selectbox(
                     "Select Skill",
                     options=skills
                 )
 
-                working_df = combined_skill_df[
-                    combined_skill_df["skill_name"] == selected_skill
+                working_df = skill_all_calls[
+                    skill_all_calls["skill_name"] == selected_skill
                 ]
 
             # =============================
