@@ -473,3 +473,196 @@ if processed_file:
         # =========================
         with tab4:
             st.write("Phone Numbers will appear here")
+
+
+
+with tab4:
+    # =============================
+    # VIEW LEVEL SELECTOR
+    # =============================
+    view_level = st.radio(
+        "Select View Level",
+        options=["Department", "Team", "Skill"],
+        horizontal=True
+    )
+
+    # =============================
+    # Collect Relevant Sheets
+    # =============================
+    team_sheets = {
+        name: df for name, df in filtered_sheets.items()
+        if name.startswith("Team")
+    }
+
+    skill_sheets = {
+        name: df for name, df in filtered_sheets.items()
+        if name.startswith("Skill")
+    }
+
+    if not team_sheets:
+        st.warning("No data available.")
+        st.stop()
+
+    combined_team_df = pd.concat(team_sheets.values(), ignore_index=True)
+
+    if skill_sheets:
+        combined_skill_df = pd.concat(skill_sheets.values(), ignore_index=True)
+    else:
+        combined_skill_df = pd.DataFrame()
+
+    # =============================
+    # FILTER BASED ON VIEW LEVEL
+    # =============================
+    if view_level == "Department":
+
+        working_df = combined_team_df
+
+    elif view_level == "Team":
+
+        teams = sorted(combined_team_df["team_name"].dropna().unique())
+
+        selected_team = st.selectbox(
+            "Select Team",
+            options=teams
+        )
+
+        working_df = combined_team_df[
+            combined_team_df["team_name"] == selected_team
+        ]
+
+    elif view_level == "Skill":
+
+        if combined_skill_df.empty:
+            st.warning("No skill-level data available.")
+            st.stop()
+
+        skills = sorted(combined_skill_df["skill_name"].dropna().unique())
+
+        selected_skill = st.selectbox(
+            "Select Skill",
+            options=skills
+        )
+
+        working_df = combined_skill_df[
+            combined_skill_df["skill_name"] == selected_skill
+        ]
+
+    # =============================
+    # SAFETY CHECK
+    # =============================
+    if "internal_num_dict" not in working_df.columns:
+        st.warning("Phone number data not available for this selection.")
+        st.stop()
+
+    # =============================
+    # FUNCTION TO BUILD TREND DF
+    # =============================
+    def build_trend_dataframe(df, column_name):
+
+        records = []
+
+        for _, row in df.iterrows():
+
+            timeframe = row["Timeframe"]
+            num_dict = row[column_name]
+
+            if isinstance(num_dict, str):
+                num_dict = eval(num_dict)
+
+            if isinstance(num_dict, dict):
+                for number, count in num_dict.items():
+                    records.append({
+                        "Timeframe": timeframe,
+                        "Phone_Number": number,
+                        "Count": count
+                    })
+
+        trend_df = pd.DataFrame(records)
+
+        if trend_df.empty:
+            return trend_df
+
+        return (
+            trend_df
+            .groupby(["Timeframe", "Phone_Number"])
+            .sum()
+            .reset_index()
+        )
+
+    # =============================
+    # BUILD INTERNAL + EXTERNAL
+    # =============================
+    internal_df = build_trend_dataframe(working_df, "internal_num_dict")
+    external_df = build_trend_dataframe(working_df, "external_num_dict")
+
+    # =============================
+    # INTERNAL GRAPH
+    # =============================
+    if not internal_df.empty:
+
+        st.markdown("### Internal Numbers")
+
+        top_internal = (
+            internal_df
+            .groupby("Phone_Number")["Count"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(20)
+            .index
+        )
+
+        selected_internal = st.multiselect(
+            "Select Internal Numbers",
+            options=top_internal,
+            default=list(top_internal[:5])
+        )
+
+        if selected_internal:
+
+            plot_internal = internal_df[
+                internal_df["Phone_Number"].isin(selected_internal)
+            ]
+
+            st.line_chart(
+                plot_internal.pivot(
+                    index="Timeframe",
+                    columns="Phone_Number",
+                    values="Count"
+                )
+            )
+
+    # =============================
+    # EXTERNAL GRAPH
+    # =============================
+    if not external_df.empty:
+
+        st.markdown("### External Numbers")
+
+        top_external = (
+            external_df
+            .groupby("Phone_Number")["Count"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(20)
+            .index
+        )
+
+        selected_external = st.multiselect(
+            "Select External Numbers",
+            options=top_external,
+            default=list(top_external[:5])
+        )
+
+        if selected_external:
+
+            plot_external = external_df[
+                external_df["Phone_Number"].isin(selected_external)
+            ]
+
+            st.line_chart(
+                plot_external.pivot(
+                    index="Timeframe",
+                    columns="Phone_Number",
+                    values="Count"
+                )
+            )
