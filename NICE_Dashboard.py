@@ -363,11 +363,11 @@ if phonesystem_file is not None and process_button:
             )
 
 
-            monthly_skill_calls["Timeframe"] = pd.to_datetime(
-                monthly_skill_calls["Timeframe"], errors="coerce"
+            monthly_skill_calls["Timeframe"] = (
+                pd.to_datetime(monthly_skill_calls["Timeframe"], errors="coerce")
+                .dt.to_period("M")
             )
 
-            monthly_skill_calls["Timeframe"] = monthly_skill_calls["Timeframe"].dt.strftime("%-m-%Y")
 
             st.session_state.skill_dfs[option] = monthly_skill_calls
 
