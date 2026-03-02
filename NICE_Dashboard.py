@@ -175,14 +175,18 @@ if phonesystem_file is not None and process_button:
         # =========================
         skill_clean = total_calls["skill_name"].astype(str).str.lower().str.replace(" ", "", regex=False)
         total_calls["call_category"] = np.select(
-            [
-                skill_clean.str.contains("afterhours", na=False),
-                skill_clean.str.contains("noagent", na=False),
-                skill_clean.str.contains("ib", na=False),
-                skill_clean.str.contains("ob", na=False),
-                skill_clean.str.contains("vm", na=False),
+            [   skill_clean.str.contains(r"\bafterhours\b", na=False),
+                skill_clean.str.contains(r"\bnoagent\b", na=False),
+                skill_clean.str.contains(r"\bib\b", na=False),
+                skill_clean.str.contains(r"\bob\b|\boutreach\b", na=False, regex=True),
+                skill_clean.str.contains(r"\bvm\b", na=False),
             ],
-            ["After Hours", "No Agent", "Inbound", "Outbound", "Voicemail"],
+            [   "After Hours",
+                "No Agent",
+                "Inbound",
+                "Outbound",
+                "Voicemail",
+            ],
             default="Other"
         )
 
