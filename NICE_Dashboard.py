@@ -443,10 +443,13 @@ if phonesystem_file is not None and process_button:
             how="left"
         )
 
-        master_contact_df["Timeframe"] = pd.to_datetime(
-            master_contact_df["Timeframe"], errors="coerce"
+
+        master_contact_df["Timeframe"] = (
+            pd.to_datetime(master_contact_df["Timeframe"], errors="coerce")
+            .dt.to_period("M")
         )
-        master_contact_df["Timeframe"] = master_contact_df["Timeframe"].dt.strftime("%-m-%Y")
+
+
 
         st.session_state.master_contact_df = master_contact_df
         st.session_state.total_calls = total_calls
@@ -504,10 +507,12 @@ if phonesystem_file is not None and process_button:
             .reset_index()
         )
 
-        phone_numbers_df["Timeframe"] = pd.to_datetime(
-            phone_numbers_df["Timeframe"], errors="coerce"
+
+
+        phone_numbers_df["Timeframe"] = (
+            pd.to_datetime(phone_numbers_df["Timeframe"], errors="coerce")
+            .dt.to_period("M")
         )
-        phone_numbers_df["Timeframe"] = phone_numbers_df["Timeframe"].dt.strftime("%-m-%Y")
 
         st.session_state.phone_numbers_df = phone_numbers_df
 
